@@ -24,5 +24,5 @@ if %RC%==0 (
     echo  [未完成] 看上面的提示，修好后再双击一次
 )
 echo.
-pause
+if not "%TRP_NO_PAUSE%"=="1" pause
 exit /b %RC%
