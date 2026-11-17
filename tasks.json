@@ -25,7 +25,8 @@
       "assignedTo": "",
       "claimedName": "",
       "secret": "B",
-      "craft": 4
+      "craft": 4,
+      "client": "智绘生物"
     },
     {
       "id": "T-2611-02",
@@ -51,7 +52,8 @@
       "assignedTo": "",
       "claimedName": "",
       "secret": "C",
-      "craft": 6
+      "craft": 6,
+      "client": "智绘生物"
     },
     {
       "id": "T-2611-03",
@@ -77,7 +79,8 @@
       "assignedTo": "",
       "claimedName": "",
       "secret": "C",
-      "craft": 2
+      "craft": 2,
+      "client": "智绘生物"
     },
     {
       "id": "T-2611-04",
@@ -103,26 +106,8 @@
       "assignedTo": "",
       "claimedName": "陈成方",
       "secret": "B",
-      "craft": 7
-    },
-    {
-      "id": "T-2611-05",
-      "title": "等级编码测试",
-      "brief": "",
-      "desc": "",
-      "reward": 100.0,
-      "deadline": "",
-      "priority": 2,
-      "tags": [],
-      "secret": "C",
       "craft": 7,
-      "assignedTo": "",
-      "status": "open",
-      "claimedBy": "",
-      "claimedName": "",
-      "claimedAt": "",
-      "submittedAt": "",
-      "checklist": []
+      "client": "智绘生物"
     }
   ]
 }

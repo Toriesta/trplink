@@ -99,6 +99,7 @@ def main() -> int:
                     help="制作水平 0–10，默认 5；与保密等级合成 A5 这样的编码")
     ap.add_argument("--craft-max", type=int, default=0, choices=list(range(0, 11)),
                     help="录入/授权人才时：此人能做的最高制作水平（0–10）")
+    ap.add_argument("--client", default="", help="客户名（成员在手机上给客户打分用）")
     ap.add_argument("--repo", default="", help="owner/repo，给了就提交到 GitHub")
     ap.add_argument("--branch", default="main")
     ap.add_argument("--push", action="store_true", help="提交到 GitHub（需要 GH_TOKEN）")
@@ -223,6 +224,7 @@ def main() -> int:
         "tags": [t.strip() for t in (args.tags or "").split(",") if t.strip()],
         "secret": secret,
         "craft": int(args.craft),
+        "client": (args.client or "").strip(),
         "assignedTo": (args.assign_to or "").strip(),
         "status": "open",
         "claimedBy": "",

@@ -19,6 +19,7 @@
     branch: 'main',
     path: 'tasks.json',
     usersPath: 'users.json',
+    ratingsPath: 'ratings.json',
     token: '',
     wechat: '',          // 微信号：登录身份，接单归属按它算
     name: '',            // 显示名（可填真实姓名）
@@ -106,7 +107,7 @@
               '字幕按现有术语表校对。交付前自检一遍跳帧与口型。',
         reward: 1200,
         deadline: day(3),
-        secret: 'B', craft: 4, priority: 1,
+        secret: 'B', craft: 4, client: '智绘生物', priority: 1,
         tags: ['剪辑', 'ODSUS'],
         status: 'open',
         claimedBy: '',
@@ -122,7 +123,7 @@
               '景别与单镜时长，参考图可用 ODSUS 生成，不必精修。',
         reward: 800,
         deadline: day(6),
-        secret: 'C', craft: 6, priority: 2,
+        secret: 'C', craft: 6, client: '智绘生物', priority: 2,
         tags: ['分镜', '文旅'],
         status: 'open',
         claimedBy: '',
@@ -138,7 +139,7 @@
               '结果整理成一页 markdown，附 3 条可执行建议。',
         reward: 300,
         deadline: day(-1),
-        secret: 'C', craft: 2, priority: 1,
+        secret: 'C', craft: 2, client: '智绘生物', priority: 1,
         tags: ['运营', 'Torie'],
         status: 'open',
         claimedBy: '',
@@ -154,7 +155,7 @@
               '英文文案需母语者可读，不必配音，先出画面与字幕。',
         reward: 1500,
         deadline: day(9),
-        secret: 'B', craft: 7, priority: 2,
+        secret: 'B', craft: 7, client: '智绘生物', priority: 2,
         tags: ['海外', '英文'],
         status: 'claimed',
         claimedBy: '陈成方',
@@ -421,6 +422,87 @@
     return { data: sanitize(normalize(payload), cfg), source: 'github', sha: sha, offline: false };
   }
 
+  /* ------------------------------------------------------------ 客户评分
+   * 由接单的一线成员打分：1–5 星 + 标签。烂客户的低分会被桌面端折算进
+   * 「可持续性」，进而影响是否值得为他升级模型、是否优先排期。
+   */
+  var RATINGS_KEY = 'trp_ratings_v1';
+
+  function localRatings() {
+    return readJSON(RATINGS_KEY, { ratings: [] });
+  }
+
+  async function readRatings() {
+    var cfg = getConfig();
+    if (cfg.mode === 'github' && gitReady(cfg)) {
+      try {
+        var got = await githubRead(cfg, cfg.ratingsPath || 'ratings.json');
+        var data = got.data || { ratings: [] };
+        if (!Array.isArray(data.ratings)) data.ratings = [];
+        writeJSON(RATINGS_KEY, data);
+        return { data: data, sha: got.sha, source: 'github' };
+      } catch (e) {
+        var cached = localRatings();
+        return { data: cached, sha: '', source: 'cache', error: (e && e.message) || '' };
+      }
+    }
+    return { data: localRatings(), sha: '', source: 'local' };
+  }
+
+  async function rateClient(client, stars, tags, note) {
+    var me = requireWechat();
+    var name = String(client || '').trim();
+    if (!name) throw new Error('这条任务没标客户名，没法评价');
+    var s = Math.max(1, Math.min(5, Math.round(Number(stars) || 0)));
+    var got = await readRatings();
+    var row = {
+      client: name,
+      wechat: me.wx,
+      name: me.name,
+      stars: s,
+      tags: (tags || []).slice(0, 5),
+      note: String(note || '').slice(0, 200),
+      at: todayISO(),
+    };
+    // 同一个人对同一客户只保留最新一票
+    var list = got.data.ratings.filter(function (r) {
+      return !(r.client === name && r.wechat === me.wx);
+    });
+    list.push(row);
+    var payload = { updated: isoNow(), ratings: list };
+
+    var cfg = getConfig();
+    if (cfg.mode === 'github' && gitReady(cfg)) {
+      try {
+        await githubWrite(cfg, payload, got.sha, 'rate ' + name + ' by ' + me.wx,
+                          cfg.ratingsPath || 'ratings.json');
+      } catch (e) {
+        writeJSON(RATINGS_KEY, payload);
+        return { row: row, localOnly: true, error: (e && e.message) || '' };
+      }
+    }
+    writeJSON(RATINGS_KEY, payload);
+    return { row: row, localOnly: false };
+  }
+
+  function clientStats(ratings, client) {
+    var rows = (ratings || []).filter(function (r) { return r.client === client; });
+    if (!rows.length) return null;
+    var sum = 0;
+    var tagCount = {};
+    rows.forEach(function (r) {
+      sum += Number(r.stars) || 0;
+      (r.tags || []).forEach(function (t) { tagCount[t] = (tagCount[t] || 0) + 1; });
+    });
+    var tags = Object.keys(tagCount).sort(function (a, b) { return tagCount[b] - tagCount[a]; });
+    return {
+      count: rows.length,
+      avg: Math.round(sum / rows.length * 10) / 10,
+      tags: tags.slice(0, 3),
+      rows: rows,
+    };
+  }
+
   function find(tasks, id) {
     for (var i = 0; i < tasks.length; i++) if (tasks[i].id === id) return tasks[i];
     return null;
@@ -556,6 +638,9 @@
     gitReady: gitReady,
     login: login,
     readUsers: readUsers,
+    readRatings: readRatings,
+    rateClient: rateClient,
+    clientStats: clientStats,
     load: load,
     claim: claim,
     release: release,

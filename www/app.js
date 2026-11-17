@@ -13,6 +13,7 @@
 
   var state = {
     tab: 'tasks',
+    rate: null,             // 当前正在打分的任务 {id, stars, tags}
     filter: 'all',          // all | open | mine
     tasks: [],
     updated: '',
@@ -304,6 +305,28 @@
   }
 
   /* ------------------------------------------------------------ 详情 */
+  var RATE_TAGS = ['钱多', '事少', '回款快', '需求乱', '拖延', '返修多'];
+
+  function ratingBlock(t) {
+    var s = state.rate && state.rate.id === t.id ? state.rate : { stars: 0, tags: [] };
+    var stars = [1, 2, 3, 4, 5].map(function (n) {
+      return '<button class="star' + (n <= s.stars ? ' is-on' : '') +
+        '" type="button" data-act="star" data-v="' + n + '" data-id="' + esc(t.id) + '">★</button>';
+    }).join('');
+    var tags = RATE_TAGS.map(function (tag) {
+      return '<button class="rate-tag' + (s.tags.indexOf(tag) >= 0 ? ' is-on' : '') +
+        '" type="button" data-act="rtag" data-tag="' + tag + '" data-id="' + esc(t.id) + '">' +
+        tag + '</button>';
+    }).join('');
+    return '<div class="rate">' +
+      '<div class="field-label">客户评价 · ' + esc(t.client) + '<span>一线成员打分，影响后面派单</span></div>' +
+      '<div class="stars">' + stars + '</div>' +
+      '<div class="rate-tags">' + tags + '</div>' +
+      '<button class="btn ink block" type="button" data-act="rate" data-id="' + esc(t.id) + '">' +
+      '提交评价' + (s.stars ? '（' + s.stars + ' 星）' : '') + '</button>' +
+      '</div>';
+  }
+
   function openSheet(id) {
     var t = null;
     for (var i = 0; i < state.tasks.length; i++) if (state.tasks[i].id === id) t = state.tasks[i];
@@ -353,6 +376,7 @@
         '<div class="kv"><span>标签</span><span>' + esc((t.tags || []).join(' · ') || '—') + '</span></div>' +
         '<div class="kv"><span>指派给</span><span>' + esc(t.assignedTo || '任何人') + '</span></div>' +
         '<div class="kv"><span>接单人</span><span>' + esc(t.claimedBy || '未接') + '</span></div>' +
+        (t.client ? ratingBlock(t) : '') +
       '</div>' +
       (t.desc ? '<div class="section-title" style="margin-top:18px">要求</div><p class="desc" style="margin-top:0">' +
         esc(t.desc) + '</p>' : '') +
@@ -481,6 +505,47 @@
       state.cfg = S.getConfig();
       toast('已退出');
       await load(true);
+      return;
+    }
+
+    if (act === 'star') {
+      ev.stopPropagation();
+      var v = Number(el.getAttribute('data-v')) || 0;
+      if (!state.rate || state.rate.id !== id) state.rate = { id: id, stars: 0, tags: [] };
+      state.rate.stars = v;
+      var siblings = el.parentElement.querySelectorAll('.star');
+      Array.prototype.forEach.call(siblings, function (b) {
+        b.classList.toggle('is-on', Number(b.getAttribute('data-v')) <= v);
+      });
+      var submit = view.querySelector('[data-act="rate"]');
+      if (submit) submit.textContent = '提交评价（' + v + ' 星）';
+      return;
+    }
+    if (act === 'rtag') {
+      ev.stopPropagation();
+      var tag = el.getAttribute('data-tag');
+      if (!state.rate || state.rate.id !== id) state.rate = { id: id, stars: 0, tags: [] };
+      var at = state.rate.tags.indexOf(tag);
+      if (at >= 0) state.rate.tags.splice(at, 1); else state.rate.tags.push(tag);
+      el.classList.toggle('is-on', state.rate.tags.indexOf(tag) >= 0);
+      return;
+    }
+    if (act === 'rate') {
+      ev.stopPropagation();
+      var task = state.tasks.filter(function (x) { return x.id === id; })[0];
+      if (!task || !task.client) { toast('这条任务没标客户名'); return; }
+      if (!state.rate || state.rate.id !== id || !state.rate.stars) {
+        toast('先点星星再提交');
+        return;
+      }
+      try {
+        var res = await S.rateClient(task.client, state.rate.stars, state.rate.tags);
+        toast(res.localOnly ? '已记在本机（没写回仓库）' : '评价已提交，谢谢你');
+        state.rate = null;
+        closeSheet();
+      } catch (e) {
+        toast((e && e.message) || '提交失败');
+      }
       return;
     }
 
