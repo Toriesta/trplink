@@ -1,8 +1,8 @@
 """发布任务（仅管理员），可指定接单人。
 
 本地：  python tools/publish_task.py --admin 你的微信号 --title "第 16 集粗剪" --reward 400 --deadline 2026-11-25
-指派：  python tools/publish_task.py --admin 你的微信号 --title "..." --assign-to chenchengfang --assign-name 陈成方
-录入人才：python tools/publish_task.py --admin 你的微信号 --add-worker chenchengfang --worker-name 陈成方
+指派：  python tools/publish_task.py --admin 你的微信号 --title "..." --assign-to yf072415 --assign-name 岳枫
+录入人才：python tools/publish_task.py --admin 你的微信号 --add-worker yf072415 --worker-name 岳枫
 首次：  python tools/publish_task.py --admin 你的微信号 --set-admin
 推仓库：再加 --repo Toriesta/trplink --push（需 GH_TOKEN 环境变量）
 
@@ -22,6 +22,32 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+DESKTOP_DB = ROOT.parent / "data" / "trp_link.db"
+
+
+def assert_not_client_side(name: str, wx: str) -> None:
+    """硬边界：甲方联系人 / 客户绝不能进可调度人才库。"""
+    import sqlite3
+
+    if not DESKTOP_DB.exists():
+        return
+    conn = sqlite3.connect(DESKTOP_DB)
+    hits = []
+    for table, col, val in (
+        ("contacts", "name", name), ("contacts", "wechat", wx),
+        ("clients", "name", name), ("clients", "wechat", wx),
+        ("network", "name", name),
+    ):
+        if not val:
+            continue
+        try:
+            if conn.execute(f"SELECT 1 FROM {table} WHERE {col}=? LIMIT 1", (val,)).fetchone():
+                hits.append(f"{table}.{col}={val}")
+        except sqlite3.Error:
+            pass
+    conn.close()
+    if hits:
+        raise ValueError("这是甲方/客户侧联系人，不能录进人才库：" + "、".join(hits))
 TASKS = ROOT / "tasks.json"
 PRIVATE = ROOT / "tasks-private.json"   # A 级：只在本机，永不进仓库
 USERS = ROOT / "users.json"
@@ -134,6 +160,11 @@ def main() -> int:
     # 人才库：被动注册。只有管理员在这里录过的人，手机端才能用工号登录
     if args.add_worker:
         wx = args.add_worker.strip()
+        try:
+            assert_not_client_side((args.worker_name or "").strip(), wx)
+        except ValueError as e:
+            print(str(e), file=sys.stderr)
+            return 1
         users_data = load_json(USERS, {"updated": "", "users": []})
         if not users_data.get("users"):
             users_data["users"] = []

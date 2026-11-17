@@ -420,7 +420,8 @@
       applyResult(await S.claim(id));
       haptic('MEDIUM');
       toast('已接下这单');
-      if (state.sheetId === id) closeSheet();
+      // 接单后直接把详情切到「提交完成」，别让接单者再回列表找一次
+      if (state.sheetId === id) openSheet(id);
     } catch (e) {
       toast((e && e.message) || '抢单失败');
     } finally {

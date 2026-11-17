@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-18T02:21:35+08:00",
+  "updated": "2026-11-18T03:17:24+08:00",
   "users": [
     {
       "wechat": "SimoHoia0523",
@@ -10,16 +10,6 @@
       "registeredAt": "2026-11-17",
       "note": "管理员：唯一可发布 / 指派 / 改密级与制作水平的人",
       "code": "1001"
-    },
-    {
-      "wechat": "chenchengfang",
-      "name": "陈成方",
-      "role": "worker",
-      "trusted": true,
-      "craft_max": 8,
-      "registeredAt": "2026-11-17",
-      "note": "可信接单人：可见并接 B 级；能独立处理制作水平 8 以内的活",
-      "code": "1002"
     },
     {
       "wechat": "A19943864586",

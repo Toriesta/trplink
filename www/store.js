@@ -115,10 +115,8 @@
    */
   var USERS_KEY = 'trp_users_v1';
   // 离线兜底名单：正常从固定仓库 users.json 拉取，缓存用于断网时登录
-  var SEED_USERS = [
-    { code: '1002', wechat: 'chenchengfang', name: '陈成方', role: 'worker', trusted: true,
-      craft_max: 8, registeredAt: '2026-11-17' }
-  ];
+  // 空名单：甲方联系人绝不能进这里。离线时宁可拒绝登录，也不冒名放人。
+  var SEED_USERS = [];
 
   function localUsers() {
     var cached = readJSON(USERS_KEY, null);
