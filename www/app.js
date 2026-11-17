@@ -192,11 +192,11 @@
       '</section>' +
       '<div class="stats">' +
         '<div class="stat"><div class="stat-label">进行中</div><div class="stat-value">' +
-          st.doing + '<small>单</small></div></div>' +
+          '<span data-count="' + st.doing + '">0</span><small>单</small></div></div>' +
         '<div class="stat"><div class="stat-label">待验收</div><div class="stat-value">' +
-          st.submitted + '<small>单</small></div></div>' +
+          '<span data-count="' + st.submitted + '">0</span><small>单</small></div></div>' +
         '<div class="stat accent"><div class="stat-label">已结算</div><div class="stat-value">' +
-          '¥' + esc(S.money(st.earned)) + '</div></div>' +
+          '<span data-count="' + st.earned + '" data-money="1">¥0</span></div></div>' +
       '</div>' +
       (doing.length ? '<div class="section-title">要做完的</div>' : '') +
       (doing.length ? '<div class="list">' + doing.map(cardHTML).join('') + '</div>' : '') +
@@ -292,6 +292,13 @@
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
       b.classList.toggle('is-active', b.getAttribute('data-tab') === state.tab);
     });
+
+    moveTabIndicator();
+    if (state.tab !== prevTab) {
+      prevTab = state.tab;
+      reflowAnim();
+      animateNumbers(view);
+    }
   }
 
   /* ------------------------------------------------------------ 详情 */
@@ -397,6 +404,7 @@
     state.busy = true;
     try {
       applyResult(await S.claim(id));
+      haptic('MEDIUM');
       toast('已接下这单');
       if (state.sheetId === id) closeSheet();
     } catch (e) {
@@ -426,6 +434,7 @@
     var noteEl = document.getElementById('deliveryNote');
     try {
       applyResult(await S.submit(id, noteEl ? noteEl.value : ''));
+      haptic('MEDIUM');
       toast('已提交，等验收');
       closeSheet();
     } catch (e) {
@@ -533,6 +542,161 @@
     if (ev.key === 'Escape' && !sheet.hidden) closeSheet();
   });
 
+  /* ------------------------------------------------------------ 动效与质感 */
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var topbarEl = document.getElementById('topbar');
+  var pullEl = document.getElementById('pull');
+  var tabIndicator = document.getElementById('tabIndicator');
+  var prevTab = '';
+
+  function haptic(style) {
+    try {
+      var cap = window.Capacitor;
+      if (cap && cap.Plugins && cap.Plugins.Haptics) {
+        cap.Plugins.Haptics.impact({ style: style || 'LIGHT' });
+      } else if (navigator.vibrate) {
+        navigator.vibrate(10);
+      }
+    } catch (e) { /* 浏览器里没有插件，忽略 */ }
+  }
+
+  function moveTabIndicator() {
+    var active = document.querySelector('.tab.is-active');
+    if (!tabIndicator || !active) return;
+    // 指示器只包住图标，别做成横跨整个 tab 的大色块
+    var w = 56;
+    tabIndicator.style.width = w + 'px';
+    tabIndicator.style.transform =
+      'translateX(' + Math.round(active.offsetLeft + (active.offsetWidth - w) / 2) + 'px)';
+  }
+
+  function fmtNum(v, o) {
+    var n = Math.round(v);
+    return o && o.money ? '¥' + n.toLocaleString('zh-CN') : String(n);
+  }
+
+  function countUp(el, value, opts) {
+    if (!el) return;
+    var o = opts || {};
+    var to = Number(value) || 0;
+    if (reduceMotion) { el.textContent = fmtNum(to, o); return; }
+    var start = 0;
+    var dur = o.duration || 720;
+    function frame(ts) {
+      if (!start) start = ts;
+      var p = Math.min(1, (ts - start) / dur);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmtNum(to * eased, o);
+      if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function animateNumbers(root) {
+    if (!root) return;
+    Array.prototype.forEach.call(root.querySelectorAll('[data-count]'), function (el) {
+      countUp(el, el.getAttribute('data-count'), {
+        money: el.getAttribute('data-money') === '1',
+        duration: 680,
+      });
+    });
+  }
+
+  function reflowAnim() {
+    if (reduceMotion) return;
+    view.classList.remove('view-anim');
+    void view.offsetWidth;          // 强制 reflow，重放页面进入动画
+    view.classList.add('view-anim');
+  }
+
+  function boot() {
+    var splash = document.getElementById('splash');
+    var appEl = document.getElementById('app');
+    var done = false;
+    function finish() {
+      if (done) return;
+      done = true;
+      if (splash) {
+        splash.classList.add('is-done');
+        setTimeout(function () { splash.remove(); }, 800);
+      }
+      if (appEl) appEl.classList.add('is-ready');
+      setTimeout(moveTabIndicator, 80);
+      setTimeout(function () { animateNumbers(view); }, 460);
+    }
+    if (!splash || reduceMotion) { finish(); return; }
+    splash.addEventListener('click', finish);
+    setTimeout(finish, 1950);
+  }
+
+  document.addEventListener('pointerdown', function (ev) {
+    if (reduceMotion) return;
+    var el = ev.target.closest ? ev.target.closest('.btn, .chip, .tab') : null;
+    if (!el) return;
+    var r = el.getBoundingClientRect();
+    var size = Math.max(r.width, r.height) * 1.2;
+    var s = document.createElement('span');
+    s.className = 'ripple';
+    s.style.width = s.style.height = size + 'px';
+    s.style.left = (ev.clientX - r.left - size / 2) + 'px';
+    s.style.top = (ev.clientY - r.top - size / 2) + 'px';
+    el.appendChild(s);
+    setTimeout(function () { s.remove(); }, 640);
+  }, { passive: true });
+
+  window.addEventListener('scroll', function () {
+    if (topbarEl) topbarEl.classList.toggle('is-scrolled', window.scrollY > 8);
+  }, { passive: true });
+
+  /* 下拉刷新：只在任务页、且已经滚到顶部时接管 */
+  var pullStart = 0;
+  var pulling = false;
+
+  window.addEventListener('touchstart', function (e) {
+    if (state.tab !== 'tasks' || window.scrollY > 0 || state.loading || !pullEl) return;
+    pullStart = e.touches[0].clientY;
+    pulling = true;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', function (e) {
+    if (!pulling || !pullEl) return;
+    var dy = e.touches[0].clientY - pullStart;
+    if (dy <= 0) {
+      pullEl.classList.remove('is-on', 'is-hot');
+      pullEl.style.transform = '';
+      return;
+    }
+    var d = Math.min(dy * 0.55, 62);
+    pullEl.classList.add('is-on');
+    pullEl.classList.toggle('is-hot', dy >= 72);
+    pullEl.style.transform = 'translate(-50%, ' + (d - 58) + 'px)';
+    var label = pullEl.querySelector('.pull-text');
+    if (label) label.textContent = dy >= 72 ? '松开刷新' : '下拉刷新';
+    var ring = pullEl.querySelector('.pull-ring');
+    if (ring) ring.style.transform = 'rotate(' + Math.round(dy * 2.2) + 'deg)';
+  }, { passive: true });
+
+  window.addEventListener('touchend', function () {
+    if (!pulling || !pullEl) return;
+    pulling = false;
+    var hot = pullEl.classList.contains('is-hot');
+    pullEl.classList.remove('is-hot');
+    if (!hot) {
+      pullEl.classList.remove('is-on');
+      pullEl.style.transform = '';
+      return;
+    }
+    pullEl.classList.add('is-loading', 'is-on');
+    pullEl.style.transform = 'translate(-50%, -6px)';
+    var label = pullEl.querySelector('.pull-text');
+    if (label) label.textContent = '正在刷新';
+    haptic('LIGHT');
+    doRefresh().then(function () {
+      pullEl.classList.remove('is-loading', 'is-on');
+      pullEl.style.transform = '';
+    });
+  }, { passive: true });
+
   /* ------------------------------------------------------------ 原生壳 */
   function initNative() {
     var cap = window.Capacitor;
@@ -553,6 +717,8 @@
   }
 
   initNative();
+  boot();
   render();
   load(false);
+  window.addEventListener('resize', moveTabIndicator);
 })();

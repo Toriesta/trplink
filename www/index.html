@@ -9,10 +9,34 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+<!-- 启动屏：深紫底，轨道标自绘 + 字标上浮 + 进度线 -->
+<div id="splash" class="splash">
+  <div class="splash-glow" aria-hidden="true"></div>
+  <div class="splash-inner">
+    <div class="splash-mark">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <circle class="orbit" cx="32" cy="32" r="24" pathLength="100"
+                fill="none" stroke="#F4F0E6" stroke-width="3.2"
+                stroke-linecap="round" stroke-dasharray="40 10 40 10"
+                stroke-dashoffset="100" transform="rotate(-32 32 32)"/>
+        <rect class="core" x="24.5" y="24.5" width="15" height="15" rx="2.4"
+              fill="#FF6E5B" transform="rotate(45 32 32)"/>
+      </svg>
+    </div>
+    <div class="splash-word" aria-label="TRP TASKS">
+      <span>T</span><span>R</span><span>P</span><i></i><span class="dim">TASKS</span>
+    </div>
+    <div class="splash-sub">天 枢 ・ 任 务 台</div>
+    <div class="splash-bar"><i></i></div>
+  </div>
+  <div class="splash-foot">TSRELPUS ARCHITECTURE</div>
+</div>
+
 <div class="glow" aria-hidden="true"></div>
 
-<div class="app">
-  <header class="topbar">
+<div class="app" id="app">
+  <header class="topbar" id="topbar">
     <div class="brand">
       <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
         <circle cx="16" cy="16" r="12.5" fill="none" stroke="currentColor" stroke-width="2"
@@ -35,9 +59,15 @@
     </button>
   </header>
 
+  <div class="pull" id="pull" aria-hidden="true">
+    <span class="pull-ring"></span>
+    <span class="pull-text">下拉刷新</span>
+  </div>
+
   <main id="view" class="view" aria-live="polite"></main>
 
   <nav class="tabbar" role="tablist">
+    <span class="tab-indicator" id="tabIndicator" aria-hidden="true"></span>
     <button class="tab is-active" data-tab="tasks" type="button" role="tab">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="4" y="4" width="16" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/>
