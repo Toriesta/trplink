@@ -18,8 +18,10 @@
     repo: 'trplink',
     branch: 'main',
     path: 'tasks.json',
+    usersPath: 'users.json',
     token: '',
-    name: ''             // 接单人显示名
+    wechat: '',          // 微信号：登录身份，接单归属按它算
+    name: ''             // 显示名（可填真实姓名）
   };
 
   var STATUS = {
@@ -159,6 +161,73 @@
     return !!(cfg.owner && cfg.repo && cfg.path);
   }
 
+  /* ------------------------------------------------------------ 用户 / 微信号
+   * 手机端只做「输入微信号登录或注册」；发布与指派留给管理员在本机脚本完成。
+   * 普通用户没有发布入口，写入时也会校验状态流转与接单归属。
+   */
+  var USERS_KEY = 'trp_users_v1';
+
+  function localUsers() {
+    return readJSON(USERS_KEY, { users: [] });
+  }
+
+  function saveLocalUser(user) {
+    var all = localUsers();
+    var found = false;
+    all.users = all.users.map(function (u) {
+      if (u.wechat === user.wechat) { found = true; return user; }
+      return u;
+    });
+    if (!found) all.users.push(user);
+    all.updated = isoNow();
+    writeJSON(USERS_KEY, all);
+  }
+
+  async function readUsers() {
+    var cfg = getConfig();
+    if (cfg.mode === 'github' && gitReady(cfg)) {
+      try {
+        var got = await githubRead(cfg, cfg.usersPath || 'users.json');
+        var data = got.data || { users: [] };
+        if (!Array.isArray(data.users)) data.users = [];
+        writeJSON(USERS_KEY, data);   // 缓存一份，离线也能登录
+        return { data: data, sha: got.sha, source: 'github' };
+      } catch (e) {
+        var cached = localUsers();
+        return { data: cached, sha: '', source: 'cache', error: (e && e.message) || '' };
+      }
+    }
+    return { data: localUsers(), sha: '', source: 'local' };
+  }
+
+  async function login(wechat, name) {
+    var wx = String(wechat || '').trim();
+    if (!wx) throw new Error('请填微信号');
+    var got = await readUsers();
+    var hit = null;
+    got.data.users.forEach(function (u) {
+      if (String(u.wechat || '').trim() === wx) hit = u;
+    });
+    if (hit && hit.role === 'admin') {
+      throw new Error('管理员账号不在这里登录；请用发布脚本');
+    }
+    if (!hit) {
+      hit = { wechat: wx, name: String(name || wx).trim(), role: 'worker',
+              registeredAt: todayISO() };
+      try {
+        var updated = { users: got.data.users.concat([hit]), updated: isoNow() };
+        await githubWrite(getConfig(), updated, got.sha, 'register ' + wx,
+                          getConfig().usersPath || 'users.json');
+      } catch (e) {
+        // 没有写 token 时只在本机登记：接单仍按微信号归属，管理员也能按微信号指派
+        saveLocalUser(hit);
+        hit._localOnly = true;
+      }
+    }
+    saveConfig({ wechat: wx, name: hit.name || name || wx });
+    return hit;
+  }
+
   /* ------------------------------------------------------------ GitHub */
   function b64encode(text) {
     var bytes = new TextEncoder().encode(text);
@@ -174,9 +243,10 @@
     return new TextDecoder().decode(bytes);
   }
 
-  function apiUrl(cfg) {
+  function apiUrl(cfg, path) {
+    var p = path || cfg.path;
     return 'https://api.github.com/repos/' + encodeURIComponent(cfg.owner) + '/' +
-      encodeURIComponent(cfg.repo) + '/contents/' + cfg.path.split('/').map(encodeURIComponent).join('/') +
+      encodeURIComponent(cfg.repo) + '/contents/' + p.split('/').map(encodeURIComponent).join('/') +
       '?ref=' + encodeURIComponent(cfg.branch || 'main') + '&t=' + Date.now();
   }
 
@@ -186,8 +256,8 @@
     return h;
   }
 
-  async function githubRead(cfg) {
-    var res = await fetch(apiUrl(cfg), { headers: headers(cfg), cache: 'no-store' });
+  async function githubRead(cfg, path) {
+    var res = await fetch(apiUrl(cfg, path), { headers: headers(cfg), cache: 'no-store' });
     if (res.status === 404) {
       throw new Error('仓库里还没有 ' + cfg.path + '，先在网页上创建这个文件');
     }
@@ -201,7 +271,7 @@
     return { data: data, sha: json.sha };
   }
 
-  async function githubWrite(cfg, data, sha, message) {
+  async function githubWrite(cfg, data, sha, message, path) {
     if (!cfg.token) throw new Error('写入需要 token：设置里填入该仓库的 PAT');
     var body = {
       message: message,
@@ -209,7 +279,7 @@
       branch: cfg.branch || 'main'
     };
     if (sha) body.sha = sha;
-    var res = await fetch(apiUrl(cfg), {
+    var res = await fetch(apiUrl(cfg, path), {
       method: 'PUT',
       headers: Object.assign({ 'Content-Type': 'application/json' }, headers(cfg)),
       body: JSON.stringify(body)
@@ -230,7 +300,8 @@
       tasks: tasks.map(function (t) {
         return Object.assign({
           status: 'open', priority: 2, tags: [], checklist: [],
-          claimedBy: '', claimedAt: '', submittedAt: '', desc: '', brief: ''
+          claimedBy: '', claimedName: '', assignedTo: '',
+          claimedAt: '', submittedAt: '', desc: '', brief: ''
         }, t);
       })
     };
@@ -295,37 +366,55 @@
     return null;
   }
 
+  function requireWechat() {
+    var cfg = getConfig();
+    var wx = String(cfg.wechat || '').trim();
+    if (!wx) throw new Error('先用微信号登录，再接单');
+    return { wx: wx, name: String(cfg.name || wx).trim() };
+  }
+
   async function claim(id, who) {
+    var me = requireWechat();
     return mutate(function (tasks) {
       var t = find(tasks, id);
       if (!t) throw new Error('任务不存在，刷新试试');
       if (t.status !== 'open') throw new Error('这单已经被接走了');
+      var assigned = String(t.assignedTo || '').trim();
+      if (assigned && assigned !== me.wx) {
+        throw new Error('这单指定给了 ' + assigned + '，不能抢');
+      }
       t.status = 'claimed';
-      t.claimedBy = who || '我';
+      t.claimedBy = me.wx;
+      t.claimedName = me.name;
       t.claimedAt = todayISO();
-    }, 'claim ' + id);
+    }, 'claim ' + id + ' by ' + me.wx);
   }
 
   async function release(id) {
+    var me = requireWechat();
     return mutate(function (tasks) {
       var t = find(tasks, id);
       if (!t) throw new Error('任务不存在，刷新试试');
       if (t.status !== 'claimed') throw new Error('当前状态不能撤回');
+      if (String(t.claimedBy || '') !== me.wx) throw new Error('这单不是你接的');
       t.status = 'open';
       t.claimedBy = '';
+      t.claimedName = '';
       t.claimedAt = '';
-    }, 'release ' + id);
+    }, 'release ' + id + ' by ' + me.wx);
   }
 
   async function submit(id, note) {
+    var me = requireWechat();
     return mutate(function (tasks) {
       var t = find(tasks, id);
       if (!t) throw new Error('任务不存在，刷新试试');
       if (t.status !== 'claimed') throw new Error('先接单才能提交');
+      if (String(t.claimedBy || '') !== me.wx) throw new Error('这单不是你接的');
       t.status = 'submitted';
       t.submittedAt = todayISO();
       if (note) t.deliveryNote = String(note).slice(0, 500);
-    }, 'submit ' + id);
+    }, 'submit ' + id + ' by ' + me.wx);
   }
 
   async function syncFromGitHub() {
@@ -358,9 +447,11 @@
     return '剩 ' + n + ' 天';
   }
 
-  function isMine(task, name) {
-    if (!name) return false;
-    return (task.claimedBy || '').trim() === String(name).trim();
+  function isMine(task, ident) {
+    var s = String(ident || '').trim();
+    if (!s) return false;
+    if (String(task.claimedBy || '').trim() === s) return true;
+    return String(task.claimedName || '').trim() === s;   // 兼容旧数据只写了名字的记录
   }
 
   function stats(tasks, name) {
@@ -385,6 +476,8 @@
     getConfig: getConfig,
     saveConfig: saveConfig,
     gitReady: gitReady,
+    login: login,
+    readUsers: readUsers,
     load: load,
     claim: claim,
     release: release,

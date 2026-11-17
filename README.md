@@ -1,7 +1,8 @@
 # TRP 任务台 · Android
 
-天枢架构内部接单客户端：**发布方把任务写进 GitHub 仓库，手机端刷新就能接单**。
-像滴滴抢单一样，任务从「待接 → 进行中 → 待验收 → 已完成」流转，谁接的、什么时候接的都写在任务文件里。
+天枢架构内部接单客户端：**管理员在本机发布或指派任务，手机端只能接单、交付**。
+用微信号登录/注册身份，任务从「待接 → 进行中 → 待验收 → 已完成」流转，
+谁接的（微信号）、什么时候接的都写在任务文件里。像滴滴抢单，但发布权只在你手里。
 
 仓库：<https://github.com/Toriesta/trplink.git>
 
@@ -29,32 +30,60 @@ cd android && ./gradlew assembleDebug      # Windows: gradlew.bat assembleDebug
 
 产物：`android/app/build/outputs/apk/debug/app-debug.apk`
 
-## 手机端怎么连到任务池
+## 角色与权限
 
-首次打开默认是**演示数据**（4 条示例任务，只存在手机里）。要接真实任务：
+| 角色 | 在哪 | 能做什么 | 不能做什么 |
+| --- | --- | --- | --- |
+| 管理员（你） | 本机 `publish_task.py` | 发布任务、指定某人、验收完成 | — |
+| 接单人 | 手机 App | 微信号登录/注册、抢单、撤回、提交交付 | 发布任务、改别人接的单、把状态改成已完成 |
 
-1. 打开 App → 底部「设置」
-2. 数据源选 **GitHub 仓库**
-3. owner 填 `Toriesta`，repo 填 `trplink`，分支 `main`，路径 `tasks.json`
-4. 填「我的名字」（例如 `陈成方`），接单时会记下这个名字
-5. 点「保存并同步」
-
-公开仓库的**读取不需要 token**；抢单、提交会写回 `tasks.json`，需要在设置里填一个
-fine-grained PAT，只给这个仓库 `Contents: read and write`。token 只存手机本地。
-
-## 发布任务
-
-在电脑上发布一条：
+首次配置管理员（只需一次）：
 
 ```bash
-python tools/publish_task.py --title "第 16 集粗剪" --reward 400 \
-  --deadline 2026-11-25 --tags "剪辑,ODSUS" --checklist "字幕|音效"
-
-# 直接推到 GitHub（需 GH_TOKEN 环境变量）
-python tools/publish_task.py --title "..." --reward 400 --repo Toriesta/trplink --push
+python tools/publish_task.py --admin 你的微信号 --set-admin
 ```
 
-也可以直接在 GitHub 网页编辑 `tasks.json`，手机端下拉或点右上角刷新即可看到。
+这个值写进 `config.json`，之后任何发布命令都要带同样的 `--admin`，否则脚本直接拒绝。
+
+## 手机端：微信号登录 → 接单
+
+首次打开默认是**演示数据**（4 条示例任务，只存在手机里）。接真实任务：
+
+1. 打开 App → 底部「设置」→「账号」
+2. 输入**微信号** → 点「登录 / 注册」（第一次输入即注册；已存在则登录）
+3. 数据源选 **GitHub 仓库**：owner `Toriesta`，repo `trplink`，分支 `main`，路径 `tasks.json`
+4. 填一个 fine-grained PAT（只给这个仓库 `Contents: read and write`）→ 保存并同步
+5. 回「任务」页抢单；指派给你的单会显示「指定给你」，并直接出现在「我的」页
+
+公开仓库的**读取不需要 token**；写入需要。token 和微信号都只存手机本地。
+
+现在是临时方案：**微信登录 = 自报微信号**，没有微信官方 OAuth（那需要 AppID + 服务器回调）。
+将来部署服务器时换成真实微信授权 + 服务端 RBAC，App 侧接口不用改。
+
+## 发布任务（仅管理员）
+
+```bash
+# 公开抢单
+python tools/publish_task.py --admin 你的微信号 --title "第 16 集粗剪" \
+  --reward 400 --deadline 2026-11-25 --tags "剪辑,ODSUS" --checklist "字幕|音效"
+
+# 指派给某个微信号（对方打开就是「我的任务」，不用抢）
+python tools/publish_task.py --admin 你的微信号 --title "海外样片" --reward 1500 \
+  --assign-to chenchengfang --assign-name 陈成方
+
+# 推到 GitHub（需 GH_TOKEN 环境变量）
+python tools/publish_task.py --admin 你的微信号 --title "..." --reward 400 \
+  --repo Toriesta/trplink --push
+```
+
+指派时会自动把这个微信号写进 `users.json`（工人角色），手机端按微信号找到自己的单。
+
+### GitHub 方案的能力边界
+
+GitHub 的 token 是**仓库级**权限，没法在 GitHub 层做到「这个 key 只能接单不能发布」。
+所以这里的权限是**应用层**的：手机端没有发布入口，`claim/submitted` 会校验微信号与任务归属，
+发布脚本用 `config.json` 的管理员微信号校验。拿到写 token 的人理论上仍可直接改仓库里的 JSON——
+这是临时软件的边界，上服务器后由后端角色校验彻底解决。
 
 字段说明：
 
@@ -65,7 +94,9 @@ python tools/publish_task.py --title "..." --reward 400 --repo Toriesta/trplink 
 | `deadline` | `YYYY-MM-DD`，≤2 天会标珊瑚色 |
 | `priority` | 1 高 / 2 中 / 3 低，决定卡片左侧竖条颜色 |
 | `status` | `open` 待接 / `claimed` 进行中 / `submitted` 待验收 / `done` 已完成 |
-| `claimedBy` | 接单人名字（App 自动写） |
+| `claimedBy` | 接单人**微信号**（App 自动写） |
+| `claimedName` | 接单人显示名 |
+| `assignedTo` | 指定接单人的微信号；非空时只有此人能接 |
 | `checklist` | 交付清单，字符串数组 |
 
 ## 目录
@@ -79,6 +110,8 @@ mobile-app/
 │  └─ app.js                  界面层：三个 tab、详情抽屉、抢单/提交/撤回
 ├─ android/                   Capacitor 生成的原生壳（含 Gradle wrapper）
 ├─ tasks.json                 任务池，GitHub 模式直接读它
+├─ users.json                 用户表（微信号 / 显示名 / 角色）
+├─ config.json                管理员微信号（发布脚本校验）
 ├─ tools/
 │  ├─ publish_task.py         命令行发布任务（标准库）
 │  └─ make_icons.py           生成品牌图标与启动屏（Pillow）

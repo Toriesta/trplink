@@ -70,17 +70,21 @@
   function filtered() {
     var list = state.tasks;
     if (state.filter === 'open') list = list.filter(function (t) { return t.status === 'open'; });
-    if (state.filter === 'mine') list = list.filter(function (t) { return S.isMine(t, state.cfg.name); });
+    if (state.filter === 'mine') list = list.filter(function (t) { return S.isMine(t, state.cfg.wechat || state.cfg.name); });
     return sortTasks(list);
   }
 
   /* ------------------------------------------------------------ 卡片 */
   function cardHTML(t, i) {
-    var mine = S.isMine(t, state.cfg.name);
+    var mine = S.isMine(t, state.cfg.wechat || state.cfg.name);
     var left = S.daysLeft(t.deadline);
     var urgent = left !== null && left <= 2;
     var meta = [S.deadlineText(t.deadline)];
-    (t.tags || []).slice(0, 2).forEach(function (g) { if (g) meta.push(g); });
+    var tags = (t.tags || []).slice(0, t.assignedTo ? 1 : 2);
+    tags.forEach(function (g) { if (g) meta.push(g); });
+    if (t.assignedTo) {
+      meta.push('指定给 ' + (S.isMine(t, state.cfg.wechat || state.cfg.name) ? '你' : t.assignedTo));
+    }
 
     var action = '';
     if (t.status === 'open') {
@@ -155,7 +159,9 @@
           '<h1>' + esc(greeting()) + (state.cfg.name ? '，' + esc(state.cfg.name) : '') + '</h1>' +
           (st.open ? '<span class="count-pill">' + st.open + ' 单待接</span>' : '') +
         '</div>' +
-        '<p>' + esc(dateLine()) + (state.source === 'github' ? ' · 已连仓库' : ' · 演示数据') +
+        '<p>' + esc(dateLine()) +
+        (state.cfg.wechat ? ' · ' + esc(state.cfg.wechat) : ' · 未登录，接单前先登录') +
+        (state.source === 'github' ? ' · 已连仓库' : ' · 演示数据') +
         (state.offline ? ' · 离线缓存' : '') + '</p>' +
       '</section>' +
       '<div class="chips">' + chips.map(function (c) {
@@ -168,7 +174,7 @@
 
   function renderMine() {
     var st = S.stats(state.tasks, state.cfg.name);
-    var mine = sortTasks(state.tasks.filter(function (t) { return S.isMine(t, state.cfg.name); }));
+    var mine = sortTasks(state.tasks.filter(function (t) { return S.isMine(t, state.cfg.wechat || state.cfg.name); }));
     var doing = mine.filter(function (t) { return t.status === 'claimed'; });
 
     var body = mine.length
@@ -179,7 +185,7 @@
       '<section class="hero">' +
         '<div class="hero-row"><h1>我的任务</h1>' +
         (st.mine ? '<span class="count-pill">' + st.mine + ' 单</span>' : '') + '</div>' +
-        '<p>' + (state.cfg.name ? esc(state.cfg.name) : '还没填名字，去设置里写上') +
+        '<p>' + (state.cfg.wechat ? esc(state.cfg.wechat) : '还没用微信号登录，去设置里登录') +
         ' · 手上 ' + st.doing + ' 单要做</p>' +
       '</section>' +
       '<div class="stats">' +
@@ -211,11 +217,24 @@
 
     view.innerHTML = '' +
       '<section class="hero"><div class="hero-row"><h1>设置</h1></div>' +
-      '<p>身份与数据源 · 改完点下面保存</p></section>' +
+      '<p>微信号登录 · 改完点下面保存</p></section>' +
 
+      '<div class="section-title">账号</div>' +
       '<div class="panel">' +
-        fieldHTML('我的名字', 'name', c.name, '例：陈成方',
-          '接单时会记下这个名字，用来筛「我的任务」') +
+        (c.wechat
+          ? '<div class="field">' +
+              '<div class="field-label">已登录 · 接单身份</div>' +
+              '<div style="display:flex;align-items:center;gap:8px">' +
+                '<span style="font-size:16px;font-weight:700">' + esc(c.wechat) + '</span>' +
+                '<span class="badge done">已登录</span>' +
+                '<span style="flex:1"></span>' +
+                '<button class="btn ghost" type="button" data-act="logout">退出</button>' +
+              '</div>' +
+            '</div>'
+          : fieldHTML('微信号', 'wechat', '', '输入微信号登录 / 注册',
+              '第一次输入即注册；已有的微信号直接登录。登录后才能接单。') +
+            '<div class="field"><button class="btn ink block" type="button" data-act="login">登录 / 注册</button></div>') +
+        fieldHTML('显示名', 'name', c.name, '例：陈成方', '展示用；任务归属按微信号算') +
       '</div>' +
 
       '<div class="section-title">数据源</div>' +
@@ -278,7 +297,7 @@
     if (!t) return;
     state.sheetId = id;
 
-    var mine = S.isMine(t, state.cfg.name);
+    var mine = S.isMine(t, state.cfg.wechat || state.cfg.name);
     var left = S.daysLeft(t.deadline);
     var actions = '';
 
@@ -316,6 +335,7 @@
         '<div class="kv"><span>优先级</span><span>' + (Number(t.priority) === 1 ? '高' :
           Number(t.priority) === 3 ? '低' : '中') + '</span></div>' +
         '<div class="kv"><span>标签</span><span>' + esc((t.tags || []).join(' · ') || '—') + '</span></div>' +
+        '<div class="kv"><span>指派给</span><span>' + esc(t.assignedTo || '任何人') + '</span></div>' +
         '<div class="kv"><span>接单人</span><span>' + esc(t.claimedBy || '未接') + '</span></div>' +
       '</div>' +
       (t.desc ? '<div class="section-title" style="margin-top:18px">要求</div><p class="desc" style="margin-top:0">' +
@@ -370,8 +390,7 @@
     if (state.busy) return;
     state.busy = true;
     try {
-      var who = state.cfg.name || '我';
-      applyResult(await S.claim(id, who));
+      applyResult(await S.claim(id));
       toast('已接下这单');
       if (state.sheetId === id) closeSheet();
     } catch (e) {
@@ -418,11 +437,34 @@
   }
 
   /* ------------------------------------------------------------ 事件 */
-  document.addEventListener('click', function (ev) {
+  document.addEventListener('click', async function (ev) {
     var el = ev.target.closest ? ev.target.closest('[data-act]') : null;
     if (!el) return;
     var act = el.getAttribute('data-act');
     var id = el.getAttribute('data-id');
+
+    if (act === 'login') {
+      var wxEl = view.querySelector('[data-set="wechat"]');
+      var nmEl = view.querySelector('[data-set="name"]');
+      if (!wxEl || !wxEl.value.trim()) { toast('先填微信号'); return; }
+      try {
+        var user = await S.login(wxEl.value, nmEl ? nmEl.value : '');
+        state.cfg = S.getConfig();
+        toast((user._localOnly ? '已在本机注册 ' : '已登录 ') + user.wechat);
+        state.tab = 'tasks';
+        render();
+      } catch (e) {
+        toast((e && e.message) || '登录失败');
+      }
+      return;
+    }
+    if (act === 'logout') {
+      S.saveConfig({ wechat: '', name: '' });
+      state.cfg = S.getConfig();
+      toast('已退出');
+      render();
+      return;
+    }
 
     if (act === 'claim') { ev.stopPropagation(); doClaim(id); return; }
     if (act === 'release') { doRelease(id); return; }

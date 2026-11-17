@@ -9,12 +9,21 @@
       "reward": 1200,
       "deadline": "2026-11-20",
       "priority": 1,
-      "tags": ["剪辑", "ODSUS"],
+      "tags": [
+        "剪辑",
+        "ODSUS"
+      ],
       "status": "open",
       "claimedBy": "",
       "claimedAt": "",
       "submittedAt": "",
-      "checklist": ["对白字幕与术语一致", "音效不压过人声", "片头片尾时长对齐"]
+      "checklist": [
+        "对白字幕与术语一致",
+        "音效不压过人声",
+        "片头片尾时长对齐"
+      ],
+      "assignedTo": "",
+      "claimedName": ""
     },
     {
       "id": "T-2611-02",
@@ -24,12 +33,21 @@
       "reward": 800,
       "deadline": "2026-11-23",
       "priority": 2,
-      "tags": ["分镜", "文旅"],
+      "tags": [
+        "分镜",
+        "文旅"
+      ],
       "status": "open",
       "claimedBy": "",
       "claimedAt": "",
       "submittedAt": "",
-      "checklist": ["分镜数 12–16", "每镜标时长", "附参考图"]
+      "checklist": [
+        "分镜数 12–16",
+        "每镜标时长",
+        "附参考图"
+      ],
+      "assignedTo": "",
+      "claimedName": ""
     },
     {
       "id": "T-2611-03",
@@ -39,12 +57,21 @@
       "reward": 300,
       "deadline": "2026-11-16",
       "priority": 1,
-      "tags": ["运营", "Torie"],
+      "tags": [
+        "运营",
+        "Torie"
+      ],
       "status": "open",
       "claimedBy": "",
       "claimedAt": "",
       "submittedAt": "",
-      "checklist": ["覆盖 20 个群", "标注命中与误判", "给 3 条建议"]
+      "checklist": [
+        "覆盖 20 个群",
+        "标注命中与误判",
+        "给 3 条建议"
+      ],
+      "assignedTo": "",
+      "claimedName": ""
     },
     {
       "id": "T-2611-04",
@@ -54,12 +81,21 @@
       "reward": 1500,
       "deadline": "2026-11-26",
       "priority": 2,
-      "tags": ["海外", "英文"],
+      "tags": [
+        "海外",
+        "英文"
+      ],
       "status": "claimed",
       "claimedBy": "陈成方",
       "claimedAt": "2026-11-15",
       "submittedAt": "",
-      "checklist": ["三条不同行业", "英文字幕无语法错", "1080p 竖版"]
+      "checklist": [
+        "三条不同行业",
+        "英文字幕无语法错",
+        "1080p 竖版"
+      ],
+      "assignedTo": "",
+      "claimedName": "陈成方"
     }
   ]
 }
