@@ -386,7 +386,7 @@ svg { display: block; }
 .hint code {
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
   font-size: 11px;
-  background: var(--iviolet, var(--violet-wash));
+  background: var(--violet-wash);
   padding: 1px 5px;
   border-radius: 5px;
   color: var(--ink-3);

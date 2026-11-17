@@ -339,10 +339,14 @@
   /* ------------------------------------------------------------ 辅助 */
   function daysLeft(deadline) {
     if (!deadline) return null;
-    var d = new Date(deadline + 'T23:59:59');
+    var parts = String(deadline).slice(0, 10).split('-');
+    if (parts.length !== 3) return null;
+    var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
     if (isNaN(d.getTime())) return null;
     var now = new Date();
-    return Math.ceil((d.getTime() - now.getTime()) / 86400000);
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // 按自然日算：今天=0、明天=1、昨天=-1，避免时刻差把「逾期」算成「今天截止」
+    return Math.round((d.getTime() - today.getTime()) / 86400000);
   }
 
   function deadlineText(deadline) {
