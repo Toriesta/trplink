@@ -1,6 +1,8 @@
 node_modules/
 *.apk
 tasks-private.json
+__pycache__/
+*.pyc
 android/.gradle/
 android/.idea/
 android/build/
