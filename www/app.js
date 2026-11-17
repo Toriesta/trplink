@@ -241,7 +241,8 @@
             '</div>'
           : fieldHTML('微信号', 'wechat', '', '输入已录入人才库的微信号',
               '被动注册：只有管理员把你加入人才库后才能登录，自己输入不会开通账号。') +
-            '<div class="field"><button class="btn ink block" type="button" data-act="login">登录</button></div>') +
+            '<div class="field"><button class="btn ink block" type="button" data-act="login">登录</button></div>' +
+            '<div class="field" id="rosterBox"><p class="hint">读取人才库中…</p></div>') +
       '</div>' +
 
       '<div class="section-title">数据源</div>' +
@@ -290,7 +291,10 @@
   function render() {
     if (state.tab === 'tasks') renderTasks();
     else if (state.tab === 'mine') renderMine();
-    else renderSettings();
+    else {
+      renderSettings();
+      fillRoster();
+    }
 
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
       b.classList.toggle('is-active', b.getAttribute('data-tab') === state.tab);
@@ -483,6 +487,50 @@
   }
 
   /* ------------------------------------------------------------ 事件 */
+  async function doLogin(wx) {
+    wx = String(wx || '').trim();
+    if (!wx) { toast('先填微信号'); return; }
+    // 中文输入法会把 yf072415 变成汉字，早一点拦住并给出明确指引
+    if (/[\u4e00-\u9fff]/.test(wx)) {
+      toast('微信号不能是中文：点键盘左上角「中」切到英文再输入');
+      return;
+    }
+    try {
+      var user = await S.login(wx);
+      state.cfg = S.getConfig();
+      toast('已登录：' + (user.name || user.wechat));
+      state.tab = 'tasks';
+      // 登录后必须重拉：B 级可见性依赖 trusted
+      await load(true);
+    } catch (e) {
+      var msg = (e && e.message) || '登录失败';
+      toast(msg.indexOf('人才库') >= 0
+        ? '人才库里没有这个号；刚加人的话点右上角刷新再试' : msg);
+    }
+  }
+
+  function fillRoster() {
+    var box = view.querySelector('#rosterBox');
+    if (!box) return;
+    S.readUsers().then(function (got) {
+      box = view.querySelector('#rosterBox');
+      if (!box) return;
+      var users = (got.data.users || []).filter(function (u) {
+        return u.role !== 'admin' && u.wechat;
+      });
+      if (!users.length) {
+        box.innerHTML = '<p class="hint">人才库还没有成员，请联系管理员录入。</p>';
+        return;
+      }
+      // 真机上中文键盘打微信号很痛：直接点名字登录，不用手输
+      box.innerHTML = '<p class="hint">或从人才库选择：' +
+        users.slice(0, 8).map(function (u) {
+          return '<button class="link" type="button" data-act="pick-user" data-wx="' +
+            esc(u.wechat) + '">' + esc(u.name || u.wechat) + '</button>';
+        }).join(' · ') + '</p>';
+    }).catch(function () { /* 读不到就保持手动输入 */ });
+  }
+
   document.addEventListener('click', async function (ev) {
     var el = ev.target.closest ? ev.target.closest('[data-act]') : null;
     if (!el) return;
@@ -491,20 +539,12 @@
 
     if (act === 'login') {
       var wxEl = view.querySelector('[data-set="wechat"]');
-      if (!wxEl || !wxEl.value.trim()) { toast('先填微信号'); return; }
-      try {
-        var user = await S.login(wxEl.value);
-        state.cfg = S.getConfig();
-        toast('已登录：' + (user.name || user.wechat));
-        state.tab = 'tasks';
-        // 登录后必须重拉：B 级可见性依赖 trusted，不刷新会漏掉 B 级任务
-        await load(true);
-      } catch (e) {
-        var msg = (e && e.message) || '登录失败';
-        toast(msg.indexOf('人才库') >= 0
-          ? '人才库里没有这个号；刚加人的话点右上角刷新再试'
-          : msg);
-      }
+      await doLogin(wxEl ? wxEl.value : '');
+      return;
+    }
+    if (act === 'pick-user') {
+      ev.stopPropagation();
+      await doLogin(el.getAttribute('data-wx'));
       return;
     }
     if (act === 'logout') {
