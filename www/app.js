@@ -474,8 +474,12 @@
   async function doRefresh() {
     refreshBtn.classList.add('is-spinning');
     await load(true);
+    // 人才库和任务池是两个文件：只刷任务会导致刚加的人「刷新了也登不了」
+    if (S.getConfig().mode === 'github') {
+      try { await S.readUsers(); } catch (e) { /* 离线时沿用缓存 */ }
+    }
     refreshBtn.classList.remove('is-spinning');
-    if (!state.error) toast('已是最新');
+    if (!state.error) toast('已同步任务与人才库');
   }
 
   /* ------------------------------------------------------------ 事件 */
@@ -496,7 +500,10 @@
         // 登录后必须重拉：B 级可见性依赖 trusted，不刷新会漏掉 B 级任务
         await load(true);
       } catch (e) {
-        toast((e && e.message) || '登录失败');
+        var msg = (e && e.message) || '登录失败';
+        toast(msg.indexOf('人才库') >= 0
+          ? '人才库里没有这个号；刚加人的话点右上角刷新再试'
+          : msg);
       }
       return;
     }
