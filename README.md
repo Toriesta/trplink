@@ -123,6 +123,23 @@ GitHub 的 token 是**仓库级**权限，没法在 GitHub 层做到「这个 ke
 | `assignedTo` | 指定接单人的微信号；非空时只有此人能接 |
 | `checklist` | 交付清单，字符串数组 |
 
+## 一键同步（双击）
+
+改完 `users.json`（人才库）或 `tasks.json`（任务池）后，双击 **`同步到GitHub.bat`** 就行。
+它不会无脑 `git add -A`，而是：
+
+1. 校验三个 JSON 的结构（任务等级、成员角色、管理员微信号）
+2. **拦截 A 级任务**：A 级只能在本机 `tasks-private.json`，混进共享池直接中止
+3. **扫描密钥**：令牌、私钥、明文密码命中就中止，不推
+4. 只提交白名单内的文件（`tasks.json` / `users.json` / `config.json` / `www/` / `tools/` / `docs/` / `android/` 等）
+5. 提交并推送；网络断了会自动重试 3 次，本地提交不会丢
+
+想先看会提交什么，不实际推：
+
+```bash
+python tools/sync_github.py --dry-run
+```
+
 ## 目录
 
 ```text
@@ -136,8 +153,10 @@ mobile-app/
 ├─ tasks.json                 任务池，GitHub 模式直接读它
 ├─ users.json                 人才库：微信号 / 显示名 / 角色（被动注册白名单）
 ├─ config.json                管理员微信号（发布脚本校验）
+├─ 同步到GitHub.bat           双击同步：校验 → 拦截 A 级 → 扫密钥 → 提交推送
 ├─ tools/
-│  ├─ publish_task.py         命令行发布任务（标准库）
+│  ├─ publish_task.py         命令行发布任务 / 录入人才 / 授权可信（标准库）
+│  ├─ sync_github.py          同步逻辑：白名单提交、JSON 校验、安全扫描、推送重试
 │  └─ make_icons.py           生成品牌图标与启动屏（Pillow）
 ├─ .github/workflows/
 │  └─ android.yml             push 后自动构建 APK 并上传 Artifact
