@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-17T18:00:00+08:00",
+  "updated": "2026-11-17T22:37:55+08:00",
   "users": [
     {
       "wechat": "SimoHoia0523",
@@ -18,6 +18,51 @@
       "craft_max": 8,
       "registeredAt": "2026-11-17",
       "note": "可信接单人：可见并接 B 级；能独立处理制作水平 8 以内的活"
+    },
+    {
+      "wechat": "A19943864586",
+      "name": "胡宽",
+      "role": "worker",
+      "trusted": false,
+      "craft_max": 4,
+      "registeredAt": "2026-11-17",
+      "note": "从桌面团队库同步 · 剪辑"
+    },
+    {
+      "wechat": "lyc1039791451",
+      "name": "刘亚超",
+      "role": "worker",
+      "trusted": false,
+      "craft_max": 2,
+      "registeredAt": "2026-11-17",
+      "note": "从桌面团队库同步 · 剪辑"
+    },
+    {
+      "wechat": "SJY20208620221219",
+      "name": "苏锦源",
+      "role": "worker",
+      "trusted": false,
+      "craft_max": 2,
+      "registeredAt": "2026-11-17",
+      "note": "从桌面团队库同步 · 软件开发"
+    },
+    {
+      "wechat": "wxid_pe6h9g3um8ye22",
+      "name": "许益杭",
+      "role": "worker",
+      "trusted": false,
+      "craft_max": 6,
+      "registeredAt": "2026-11-17",
+      "note": "从桌面团队库同步 · 编剧，文学顾问"
+    },
+    {
+      "wechat": "X0o0o0JH",
+      "name": "许均鸿",
+      "role": "worker",
+      "trusted": false,
+      "craft_max": 6,
+      "registeredAt": "2026-11-17",
+      "note": "从桌面团队库同步 · 软件工程师"
     }
   ]
 }
