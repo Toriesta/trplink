@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 与 Web 端同一套色板：象牙白 / 深紫 / 珊瑚 -->
+    <color name="colorPrimary">#1A1030</color>
+    <color name="colorPrimaryDark">#120B21</color>
+    <color name="colorAccent">#FF6E5B</color>
+    <color name="ivory">#F4F0E6</color>
+</resources>

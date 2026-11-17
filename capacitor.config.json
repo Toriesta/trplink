@@ -1,0 +1,19 @@
+{
+  "appId": "com.tsrelpus.tasks",
+  "appName": "TRP 任务台",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#F4F0E6"
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#F4F0E6",
+      "overlaysWebView": false
+    }
+  }
+}

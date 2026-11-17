@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#F4F0E6">
+<meta name="color-scheme" content="light">
+<title>TRP 任务台</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="glow" aria-hidden="true"></div>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="12.5" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-dasharray="52 26" transform="rotate(-32 16 16)"/>
+        <rect x="12" y="12" width="8" height="8" rx="1.6" fill="#FF6E5B"
+              transform="rotate(45 16 16)"/>
+      </svg>
+      <div class="brand-text">
+        <span class="brand-name">TRP 任务台</span>
+        <span class="brand-sub">TASKS / 接单</span>
+      </div>
+    </div>
+    <button class="icon-btn" id="btnRefresh" type="button" aria-label="刷新任务">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M20 11a8 8 0 1 0-2.3 5.7" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M20 5.5V11h-5.5" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </header>
+
+  <main id="view" class="view" aria-live="polite"></main>
+
+  <nav class="tabbar" role="tablist">
+    <button class="tab is-active" data-tab="tasks" type="button" role="tab">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="4" y="4" width="16" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/>
+        <rect x="4" y="14" width="16" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/>
+      </svg>
+      <span>任务</span>
+    </button>
+    <button class="tab" data-tab="mine" type="button" role="tab">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="8.5" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7"/>
+        <path d="M4.8 20c1.1-3.6 3.9-5.4 7.2-5.4S18.1 16.4 19.2 20" fill="none"
+              stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+      </svg>
+      <span>我的</span>
+    </button>
+    <button class="tab" data-tab="settings" type="button" role="tab">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/>
+        <path d="M12 3.6v2.2M12 18.2v2.2M4.6 12h2.2M17.2 12h2.2M6.8 6.8l1.6 1.6M15.6 15.6l1.6 1.6M17.2 6.8l-1.6 1.6M8.4 15.6l-1.6 1.6"
+              fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+      </svg>
+      <span>设置</span>
+    </button>
+  </nav>
+</div>
+
+<div id="sheet" class="sheet-wrap" hidden>
+  <div class="sheet-backdrop" data-close="1"></div>
+  <section class="sheet" role="dialog" aria-modal="true" aria-label="任务详情">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div id="sheetBody" class="sheet-body"></div>
+  </section>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="store.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

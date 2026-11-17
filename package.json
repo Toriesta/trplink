@@ -1,0 +1,22 @@
+{
+  "name": "trp-tasks",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TRP 任务台 · 安卓接单客户端（天枢架构内部工具）",
+  "scripts": {
+    "serve": "python -m http.server 5173 --directory www",
+    "add:android": "cap add android",
+    "sync": "cap sync android",
+    "apk": "cd android && gradlew.bat assembleDebug",
+    "open:android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/status-bar": "^6.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}
