@@ -22,6 +22,15 @@
 
 性能约束：动画只动 `transform` / `opacity`，不用大范围模糊；玻璃效果只出现在固定的顶栏与底栏。
 
+<p align="center">
+  <img src="docs/screenshots/splash.png" width="240" alt="启动屏">
+  <img src="docs/screenshots/tasks.png" width="240" alt="任务池">
+</p>
+<p align="center">
+  <img src="docs/screenshots/sheet.png" width="240" alt="任务详情">
+  <img src="docs/screenshots/mine.png" width="240" alt="我的任务">
+</p>
+
 ## 拿到 APK（推荐：GitHub Actions 免费构建）
 
 1. 把本目录内容推到 `Toriesta/trplink` 的 `main` 分支
