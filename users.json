@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-17",
+  "updated": "2026-11-17T22:58:00+08:00",
   "users": [
     {
       "wechat": "SimoHoia0523",
@@ -63,6 +63,15 @@
       "craft_max": 6,
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 软件工程师"
+    },
+    {
+      "wechat": "yf072415",
+      "name": "岳枫",
+      "role": "worker",
+      "trusted": false,
+      "craft_max": 6,
+      "registeredAt": "2026-11-17",
+      "note": "从 TRP Link 1.0 团队库同步 · 商务"
     }
   ]
 }
