@@ -90,10 +90,120 @@
     } catch (e) { /* 容量满或隐私模式，忽略 */ }
   }
 
-  /* ------------------------------------------------------------ 任务池
-   * 正经软件不放假任务：空池就显示空状态，任务只能由管理员发布。
+  /* ------------------------------------------------------------ 演示数据 */
+  function demoTasks() { return []; }   // 正经软件不放假任务
+
+  /* ------------------------------------------------------------ 配置 */
+  function getConfig() {
+    var cfg = readJSON(CFG_KEY, null) || {};
+    var out = {};
+    Object.keys(DEFAULT_CONFIG).forEach(function (k) {
+      out[k] = cfg[k] !== undefined && cfg[k] !== null ? cfg[k] : DEFAULT_CONFIG[k];
+    });
+    return out;
+  }
+
+  function saveConfig(patch) {
+    var cfg = getConfig();
+    Object.keys(patch || {}).forEach(function (k) { cfg[k] = patch[k]; });
+    writeJSON(CFG_KEY, cfg);
+    return cfg;
+  }
+
+  function gitReady(cfg) {
+    return !!(cfg.owner && cfg.repo && cfg.path);
+  }
+
+  /* ------------------------------------------------------------ 用户 / 微信号
+   * 手机端只做「输入微信号登录或注册」；发布与指派留给管理员在本机脚本完成。
+   * 普通用户没有发布入口，写入时也会校验状态流转与接单归属。
    */
-  function demoTasks() { return []; }
+  var USERS_KEY = 'trp_users_v1';
+  // 演示模式下的内置人才库：真实模式的名单以仓库 users.json 为准
+  var SEED_USERS = [
+    { wechat: 'chenchengfang', name: '陈成方', role: 'worker', trusted: true,
+      craft_max: 8, registeredAt: '2026-11-17' }
+  ];
+
+  function localUsers() {
+    var cached = readJSON(USERS_KEY, null);
+    if (cached && Array.isArray(cached.users) && cached.users.length) return cached;
+    return { users: SEED_USERS.slice(), updated: isoNow() };
+  }
+
+  async function readUsers() {
+    var cfg = getConfig();
+    if (cfg.mode === 'github' && gitReady(cfg)) {
+      try {
+        var got = await githubRead(cfg, cfg.usersPath || 'users.json');
+        var data = got.data || { users: [] };
+        if (!Array.isArray(data.users)) data.users = [];
+        writeJSON(USERS_KEY, data);   // 缓存一份，离线也能登录
+        return { data: data, sha: got.sha, source: 'github' };
+      } catch (e) {
+        var cached = localUsers();
+        return { data: cached, sha: '', source: 'cache', error: (e && e.message) || '' };
+      }
+    }
+    return { data: localUsers(), sha: '', source: 'local' };
+  }
+
+  async function login(wechat, name) {
+    var wx = String(wechat || '').trim();
+    if (!wx) throw new Error('请填微信号');
+    var got = await readUsers();
+    var hit = null;
+    got.data.users.forEach(function (u) {
+      if (String(u.wechat || '').trim() === wx) hit = u;
+    });
+    // 被动注册：只有管理员在人才库里录过的微信号才能登录
+    if (!hit) throw new Error('这个微信号还没录入人才库，请联系管理员添加');
+    if (hit.role === 'admin') throw new Error('管理员账号不在手机端登录');
+    saveConfig({
+      wechat: wx,
+      name: hit.name || name || wx,
+      trusted: !!hit.trusted,
+      craft_max: Number(hit.craft_max != null ? hit.craft_max : 10),
+    });
+    return hit;
+  }
+
+  /* ------------------------------------------------------------ 保密等级 */
+  function levelOf(task) {
+    var s = String((task && task.secret) || 'C').toUpperCase();
+    return s === 'A' || s === 'B' ? s : 'C';
+  }
+
+  function canSee(task, cfg) {
+    var lv = levelOf(task);
+    if (lv === 'A') return false;                 // A 级不进共享池，手机端永远看不到
+    if (lv === 'B') return !!(cfg && cfg.trusted);
+    return true;
+  }
+
+  function visible(tasks, cfg) {
+    return (tasks || []).filter(function (t) { return canSee(t, cfg); });
+  }
+
+  // 管理员可能在仓库里新授予可信身份：每次读取都按人才库刷新一次
+  async function refreshTrust(cfg) {
+    if (!cfg.wechat) return cfg;
+    try {
+      var got = await readUsers();
+      var hit = null;
+      got.data.users.forEach(function (u) {
+        if (String(u.wechat || '').trim() === cfg.wechat) hit = u;
+      });
+      if (hit) {
+        saveConfig({
+          trusted: !!hit.trusted,
+          name: hit.name || cfg.name,
+          craft_max: Number(hit.craft_max != null ? hit.craft_max : cfg.craft_max),
+        });
+      }
+    } catch (e) { /* 离线时沿用本地缓存 */ }
+    return getConfig();
+  }
 
   /* ------------------------------------------------------------ GitHub */
   function b64encode(text) {
