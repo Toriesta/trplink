@@ -25,7 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SHARED_DIRS = ("www", "tools", "docs", "android", ".github")
 SHARED_FILES = (
-    "tasks.json", "users.json", "config.json", "README.md",
+    "tasks.json", "users.json", "config.json", "ratings.json", "README.md",
     "package.json", "package-lock.json", "capacitor.config.json", ".gitignore",
     "同步到GitHub.bat",
 )
