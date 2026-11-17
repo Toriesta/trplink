@@ -23,6 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TASKS = ROOT / "tasks.json"
+PRIVATE = ROOT / "tasks-private.json"   # A 级：只在本机，永不进仓库
 USERS = ROOT / "users.json"
 CONFIG = ROOT / "config.json"
 API = "https://api.github.com"
@@ -90,6 +91,10 @@ def main() -> int:
     ap.add_argument("--assign-name", default="", help="指定接单人的显示名")
     ap.add_argument("--add-worker", default="", help="把微信号录入人才库（不发布任务）")
     ap.add_argument("--worker-name", default="", help="录入人才时的显示名")
+    ap.add_argument("--trust-worker", default="", help="把成员升为可信（可见 B 级）")
+    ap.add_argument("--untrust-worker", default="", help="取消可信身份")
+    ap.add_argument("--secret", default="A", choices=["A", "B", "C"],
+                    help="保密等级：A 只留本机、B 仅可信成员、C 任何人可接（默认 A）")
     ap.add_argument("--repo", default="", help="owner/repo，给了就提交到 GitHub")
     ap.add_argument("--branch", default="main")
     ap.add_argument("--push", action="store_true", help="提交到 GitHub（需要 GH_TOKEN）")
@@ -140,11 +145,58 @@ def main() -> int:
                         f"add worker {wx}")
         return 0
 
+    # 可信身份：B 级任务只对这些人可见、可接
+    if args.trust_worker or args.untrust_worker:
+        wx = (args.trust_worker or args.untrust_worker).strip()
+        flag = bool(args.trust_worker)
+        users_data = load_json(USERS, {"updated": "", "users": []})
+        if not users_data.get("users"):
+            users_data["users"] = []
+        hit = next((u for u in users_data["users"]
+                    if str(u.get("wechat") or "").strip() == wx), None)
+        if hit is None:
+            if not flag:
+                print(f"人才库里没有 {wx}", file=sys.stderr)
+                return 1
+            hit = {"wechat": wx, "name": args.worker_name or wx,
+                   "role": "worker", "registeredAt": dt.date.today().isoformat()}
+            users_data["users"].append(hit)
+        hit["trusted"] = flag
+        if args.worker_name:
+            hit["name"] = args.worker_name
+        users_data["updated"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
+        save_json(USERS, users_data)
+        print(f"{wx} " + ("已升为可信成员（可见并接 B 级）" if flag else "已取消可信（只接 C 级）"))
+        if args.push:
+            token = os.environ.get("GH_TOKEN", "").strip()
+            if not token or not args.repo:
+                print("推送需要 GH_TOKEN 和 --repo，已只写本地文件", file=sys.stderr)
+                return 1
+            push_github(args.repo, token, users_data, args.branch, "users.json",
+                        f"trust {wx}={flag}")
+        return 0
+
     if not args.title:
         print("发布任务需要 --title", file=sys.stderr)
         return 1
 
-    tasks_data = load_json(TASKS, {"updated": "", "tasks": []})
+    secret = (args.secret or "A").upper()
+    if secret not in ("A", "B", "C"):
+        secret = "A"
+    if secret == "A":
+        # A 级永不进共享仓库：只在管理员本机留档
+        if args.assign_to:
+            print("A 级任务必须自己做，不能指派给任何人", file=sys.stderr)
+            return 1
+        if args.push:
+            print("A 级任务不能推到共享仓库（会泄露），只写本机 tasks-private.json",
+                  file=sys.stderr)
+            return 1
+        target = PRIVATE
+    else:
+        target = TASKS
+
+    tasks_data = load_json(target, {"updated": "", "tasks": []})
     users_data = load_json(USERS, {"updated": "", "users": []})
     if not users_data.get("users"):
         users_data["users"] = []
@@ -158,6 +210,7 @@ def main() -> int:
         "deadline": args.deadline or "",
         "priority": int(args.priority or 2),
         "tags": [t.strip() for t in (args.tags or "").split(",") if t.strip()],
+        "secret": secret,
         "assignedTo": (args.assign_to or "").strip(),
         "status": "open",
         "claimedBy": "",
@@ -173,9 +226,17 @@ def main() -> int:
         hit = next((u for u in users_data["users"]
                     if str(u.get("wechat") or "").strip() == wx), None)
         if hit is None:
+            if secret == "B":
+                print(f"B 级任务只能派给可信成员：先运行 --trust-worker {wx} 授权",
+                      file=sys.stderr)
+                return 1
             hit = {"wechat": wx, "name": args.assign_name or wx,
                    "role": "worker", "registeredAt": dt.date.today().isoformat()}
             users_data["users"].append(hit)
+        elif secret == "B" and not hit.get("trusted"):
+            print(f"{wx} 还不可信，B 级任务不能派给他：先 --trust-worker {wx}",
+                  file=sys.stderr)
+            return 1
         task["status"] = "claimed"
         task["claimedBy"] = wx
         task["claimedName"] = hit.get("name") or wx
@@ -185,12 +246,14 @@ def main() -> int:
     tasks_data["tasks"].append(task)
     tasks_data["updated"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
 
-    save_json(TASKS, tasks_data)
+    save_json(target, tasks_data)
     if task["assignedTo"]:
         save_json(USERS, users_data)
 
     who = "指派给 " + task["assignedTo"] if task["assignedTo"] else "公开抢单"
-    print(f"已发布 {task['id']} {task['title']}（{who}）")
+    print(f"已发布 {task['id']} {task['title']}（{secret} 级 · {who}）")
+    if secret == "A":
+        print(f"  已写入 {PRIVATE.name}，只在本机，不会同步到 GitHub")
 
     if args.push:
         token = os.environ.get("GH_TOKEN", "").strip()

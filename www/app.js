@@ -104,6 +104,8 @@
         '</div>' +
         (t.brief ? '<p class="card-brief">' + esc(t.brief) + '</p>' : '') +
         '<div class="card-foot">' +
+          '<span class="lv lv-' + esc(t.secret) + '" title="' +
+            esc(S.LEVELS[t.secret] || '') + '">' + esc(t.secret) + '</span>' +
           '<span class="meta' + (urgent ? ' urgent' : '') + '">' + esc(meta[0]) + '</span>' +
           meta.slice(1).map(function (m) {
             return '<i class="dot-sep"></i><span class="meta">' + esc(m) + '</span>';
@@ -227,6 +229,8 @@
               '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
                 '<span style="font-size:16px;font-weight:700">' + esc(c.name || c.wechat) + '</span>' +
                 '<span class="meta">' + esc(c.wechat) + '</span>' +
+                '<span class="badge ' + (c.trusted ? 'claimed' : 'muted') + '">' +
+                  (c.trusted ? '可信成员 · 可见 B 级' : '普通成员 · 仅 C 级') + '</span>' +
                 '<span style="flex:1"></span>' +
                 '<button class="btn ghost" type="button" data-act="logout">退出</button>' +
               '</div>' +
@@ -323,6 +327,8 @@
     sheetBody.innerHTML = '' +
       '<div class="row">' +
         '<span class="badge ' + esc(t.status) + '">' + esc(S.STATUS[t.status] || t.status) + '</span>' +
+        '<span class="lv lv-' + esc(t.secret) + '">' + esc(t.secret) + '</span>' +
+        '<span class="meta">' + esc(S.LEVELS[t.secret] || '') + '</span>' +
         '<span class="meta">' + esc(t.id) + '</span>' +
         (left !== null && left <= 2 && t.status === 'open'
           ? '<span class="meta urgent">' + esc(S.deadlineText(t.deadline)) + '</span>' : '') +
@@ -451,17 +457,18 @@
         state.cfg = S.getConfig();
         toast('已登录：' + (user.name || user.wechat));
         state.tab = 'tasks';
-        render();
+        // 登录后必须重拉：B 级可见性依赖 trusted，不刷新会漏掉 B 级任务
+        await load(true);
       } catch (e) {
         toast((e && e.message) || '登录失败');
       }
       return;
     }
     if (act === 'logout') {
-      S.saveConfig({ wechat: '', name: '' });
+      S.saveConfig({ wechat: '', name: '', trusted: false });
       state.cfg = S.getConfig();
       toast('已退出');
-      render();
+      await load(true);
       return;
     }
 

@@ -23,7 +23,8 @@
         "片头片尾时长对齐"
       ],
       "assignedTo": "",
-      "claimedName": ""
+      "claimedName": "",
+      "secret": "B"
     },
     {
       "id": "T-2611-02",
@@ -47,7 +48,8 @@
         "附参考图"
       ],
       "assignedTo": "",
-      "claimedName": ""
+      "claimedName": "",
+      "secret": "C"
     },
     {
       "id": "T-2611-03",
@@ -71,7 +73,8 @@
         "给 3 条建议"
       ],
       "assignedTo": "",
-      "claimedName": ""
+      "claimedName": "",
+      "secret": "C"
     },
     {
       "id": "T-2611-04",
@@ -95,7 +98,8 @@
         "1080p 竖版"
       ],
       "assignedTo": "",
-      "claimedName": "陈成方"
+      "claimedName": "陈成方",
+      "secret": "B"
     }
   ]
 }

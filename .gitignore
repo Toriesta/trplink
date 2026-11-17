@@ -1,5 +1,6 @@
 node_modules/
 *.apk
+tasks-private.json
 android/.gradle/
 android/.idea/
 android/build/

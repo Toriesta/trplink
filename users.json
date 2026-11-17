@@ -1,19 +1,21 @@
 {
-  "updated": "2026-11-17T15:00:00+08:00",
+  "updated": "2026-11-17T15:30:00+08:00",
   "users": [
     {
       "wechat": "SimoHoia0523",
       "name": "商务",
       "role": "admin",
+      "trusted": true,
       "registeredAt": "2026-11-17",
-      "note": "管理员：只有此微信号可以发布和指派任务"
+      "note": "管理员：唯一可发布 / 指派 / 改密级的人"
     },
     {
       "wechat": "chenchengfang",
       "name": "陈成方",
       "role": "worker",
+      "trusted": true,
       "registeredAt": "2026-11-17",
-      "note": "接单人示例，微信号按实际改"
+      "note": "可信接单人：可见并接 B 级任务"
     }
   ]
 }

@@ -69,21 +69,34 @@ python tools/publish_task.py --admin SimoHoia0523 --add-worker 对方微信号 -
 现在是临时方案：**微信登录 = 校验人才库里的微信号**，没有微信官方 OAuth（那需要 AppID + 服务器回调）。
 将来部署服务器时换成真实微信授权 + 服务端 RBAC，App 侧接口不用改。
 
+### 保密分级 A / B / C
+
+| 级别 | 含义 | 手机端可见性 | 存放位置 |
+| --- | --- | --- | --- |
+| **A** | 最高机密，必须自己做 | 永远看不到，也不能派单 | 本机 `tasks-private.json`，**不进仓库** |
+| **B** | 商业敏感，只给可信成员 | 只有 `trusted` 成员可见可接 | 仓库 `tasks.json` |
+| **C** | 常规外包 | 所有已登录成员 | 仓库 `tasks.json` |
+
+`--secret` 默认是 **A**（安全默认）：不带这个参数就只写本机，不会外发。
+授予可信身份：`--trust-worker 微信号`。
+
 ## 发布任务（仅管理员）
 
 ```bash
-# 公开抢单
-python tools/publish_task.py --admin 你的微信号 --title "第 16 集粗剪" \
-  --reward 400 --deadline 2026-11-25 --tags "剪辑,ODSUS" --checklist "字幕|音效"
+# A 级：最高机密，只留本机（默认就是 A，不能指派、不能 push）
+python tools/publish_task.py --admin SimoHoia0523 --secret A --title "客户原始素材整理"
 
-# 指派给某个微信号（对方打开就是「我的任务」，不用抢）
-python tools/publish_task.py --admin 你的微信号 --title "海外样片" --reward 1500 \
-  --assign-to chenchengfang --assign-name 陈成方
+# B 级：只给可信成员，可直接指派
+python tools/publish_task.py --admin SimoHoia0523 --secret B --title "海外样片" \
+  --reward 1500 --assign-to chenchengfang --repo Toriesta/trplink --push
 
-# 推到 GitHub（需 GH_TOKEN 环境变量）
-python tools/publish_task.py --admin 你的微信号 --title "..." --reward 400 \
+# C 级：任何已登录成员都能抢
+python tools/publish_task.py --admin SimoHoia0523 --secret C --title "第 16 集粗剪" \
+  --reward 400 --deadline 2026-11-25 --tags "剪辑,ODSUS" --checklist "字幕|音效" \
   --repo Toriesta/trplink --push
 ```
+
+> LLM 判定与结款的完整设计见 [`docs/dispatch-and-payout.md`](docs/dispatch-and-payout.md)。
 
 指派时会自动把这个微信号写进 `users.json`（工人角色），手机端按微信号找到自己的单。
 平时加人用 `--add-worker`，不需要发布任务。
@@ -103,6 +116,7 @@ GitHub 的 token 是**仓库级**权限，没法在 GitHub 层做到「这个 ke
 | `reward` | 金额（人民币） |
 | `deadline` | `YYYY-MM-DD`，≤2 天会标珊瑚色 |
 | `priority` | 1 高 / 2 中 / 3 低，决定卡片左侧竖条颜色 |
+| `secret` | 保密等级 `A` / `B` / `C`（A 不进仓库） |
 | `status` | `open` 待接 / `claimed` 进行中 / `submitted` 待验收 / `done` 已完成 |
 | `claimedBy` | 接单人**微信号**（App 自动写） |
 | `claimedName` | 接单人显示名 |

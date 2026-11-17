@@ -21,8 +21,12 @@
     usersPath: 'users.json',
     token: '',
     wechat: '',          // 微信号：登录身份，接单归属按它算
-    name: ''             // 显示名（可填真实姓名）
+    name: '',            // 显示名（可填真实姓名）
+    trusted: false       // 可信成员：能看并接 B 级任务
   };
+
+  // 保密等级：A 只留在管理员本机（不进共享池），B 仅可信成员，C 任何人可接
+  var LEVELS = { A: 'A 级 · 仅本人', B: 'B 级 · 可信成员', C: 'C 级 · 可外包' };
 
   var STATUS = {
     open: '待接',
@@ -81,7 +85,7 @@
               '字幕按现有术语表校对。交付前自检一遍跳帧与口型。',
         reward: 1200,
         deadline: day(3),
-        priority: 1,
+        secret: 'B', priority: 1,
         tags: ['剪辑', 'ODSUS'],
         status: 'open',
         claimedBy: '',
@@ -97,7 +101,7 @@
               '景别与单镜时长，参考图可用 ODSUS 生成，不必精修。',
         reward: 800,
         deadline: day(6),
-        priority: 2,
+        secret: 'C', priority: 2,
         tags: ['分镜', '文旅'],
         status: 'open',
         claimedBy: '',
@@ -113,7 +117,7 @@
               '结果整理成一页 markdown，附 3 条可执行建议。',
         reward: 300,
         deadline: day(-1),
-        priority: 1,
+        secret: 'C', priority: 1,
         tags: ['运营', 'Torie'],
         status: 'open',
         claimedBy: '',
@@ -129,7 +133,7 @@
               '英文文案需母语者可读，不必配音，先出画面与字幕。',
         reward: 1500,
         deadline: day(9),
-        priority: 2,
+        secret: 'B', priority: 2,
         tags: ['海外', '英文'],
         status: 'claimed',
         claimedBy: '陈成方',
@@ -168,7 +172,8 @@
   var USERS_KEY = 'trp_users_v1';
   // 演示模式下的内置人才库：真实模式的名单以仓库 users.json 为准
   var SEED_USERS = [
-    { wechat: 'chenchengfang', name: '陈成方', role: 'worker', registeredAt: '2026-11-17' }
+    { wechat: 'chenchengfang', name: '陈成方', role: 'worker', trusted: true,
+      registeredAt: '2026-11-17' }
   ];
 
   function localUsers() {
@@ -205,8 +210,39 @@
     // 被动注册：只有管理员在人才库里录过的微信号才能登录
     if (!hit) throw new Error('这个微信号还没录入人才库，请联系管理员添加');
     if (hit.role === 'admin') throw new Error('管理员账号不在手机端登录');
-    saveConfig({ wechat: wx, name: hit.name || name || wx });
+    saveConfig({ wechat: wx, name: hit.name || name || wx, trusted: !!hit.trusted });
     return hit;
+  }
+
+  /* ------------------------------------------------------------ 保密等级 */
+  function levelOf(task) {
+    var s = String((task && task.secret) || 'C').toUpperCase();
+    return s === 'A' || s === 'B' ? s : 'C';
+  }
+
+  function canSee(task, cfg) {
+    var lv = levelOf(task);
+    if (lv === 'A') return false;                 // A 级不进共享池，手机端永远看不到
+    if (lv === 'B') return !!(cfg && cfg.trusted);
+    return true;
+  }
+
+  function visible(tasks, cfg) {
+    return (tasks || []).filter(function (t) { return canSee(t, cfg); });
+  }
+
+  // 管理员可能在仓库里新授予可信身份：每次读取都按人才库刷新一次
+  async function refreshTrust(cfg) {
+    if (!cfg.wechat) return cfg;
+    try {
+      var got = await readUsers();
+      var hit = null;
+      got.data.users.forEach(function (u) {
+        if (String(u.wechat || '').trim() === cfg.wechat) hit = u;
+      });
+      if (hit) saveConfig({ trusted: !!hit.trusted, name: hit.name || cfg.name });
+    } catch (e) { /* 离线时沿用本地缓存 */ }
+    return getConfig();
   }
 
   /* ------------------------------------------------------------ GitHub */
@@ -279,18 +315,26 @@
     return {
       updated: (data && data.updated) || '',
       tasks: tasks.map(function (t) {
-        return Object.assign({
-          status: 'open', priority: 2, tags: [], checklist: [],
+        var row = Object.assign({
+          status: 'open', priority: 2, tags: [], checklist: [], secret: 'C',
           claimedBy: '', claimedName: '', assignedTo: '',
           claimedAt: '', submittedAt: '', desc: '', brief: ''
         }, t);
+        row.secret = String(row.secret || 'C').toUpperCase();
+        if (['A', 'B', 'C'].indexOf(row.secret) < 0) row.secret = 'C';
+        return row;
       })
     };
   }
 
   /* ------------------------------------------------------------ 读取 */
+  function sanitize(data, cfg) {
+    data.tasks = visible(data.tasks, cfg);
+    return data;
+  }
+
   async function load(opts) {
-    var cfg = getConfig();
+    var cfg = await refreshTrust(getConfig());
     var force = !!(opts && opts.force);
 
     if (cfg.mode !== 'github' || !gitReady(cfg)) {
@@ -299,7 +343,8 @@
         local = { updated: isoNow(), tasks: demoTasks() };
         writeJSON(LOCAL_KEY, local);
       }
-      return { data: normalize(local), source: 'local', sha: '', offline: false, error: '' };
+      return { data: sanitize(normalize(local), cfg), source: 'local',
+               sha: '', offline: false, error: '' };
     }
 
     var cache = readJSON(CACHE_KEY, null);
@@ -309,11 +354,12 @@
     try {
       var got = await githubRead(cfg);
       writeJSON(CACHE_KEY, { data: got.data, sha: got.sha, at: Date.now() });
-      return { data: normalize(got.data), source: 'github', sha: got.sha, offline: false, error: '' };
+      return { data: sanitize(normalize(got.data), cfg), source: 'github',
+               sha: got.sha, offline: false, error: '' };
     } catch (e) {
       if (cache && cache.data) {
         return {
-          data: normalize(cache.data), source: 'github', sha: cache.sha || '',
+          data: sanitize(normalize(cache.data), cfg), source: 'github', sha: cache.sha || '',
           offline: true, error: (e && e.message) || '网络不可用，显示上次缓存'
         };
       }
@@ -330,7 +376,7 @@
       mutator(local.tasks);
       local.updated = isoNow();
       writeJSON(LOCAL_KEY, local);
-      return { data: normalize(local), source: 'local', sha: '', offline: false };
+      return { data: sanitize(normalize(local), cfg), source: 'local', sha: '', offline: false };
     }
 
     var got = await githubRead(cfg);   // 始终拿最新 sha，降低冲突
@@ -339,7 +385,7 @@
     payload.updated = isoNow();
     var sha = await githubWrite(cfg, payload, got.sha, message || 'update tasks');
     writeJSON(CACHE_KEY, { data: payload, sha: sha, at: Date.now() });
-    return { data: normalize(payload), source: 'github', sha: sha, offline: false };
+    return { data: sanitize(normalize(payload), cfg), source: 'github', sha: sha, offline: false };
   }
 
   function find(tasks, id) {
@@ -351,7 +397,7 @@
     var cfg = getConfig();
     var wx = String(cfg.wechat || '').trim();
     if (!wx) throw new Error('先用微信号登录，再接单');
-    return { wx: wx, name: String(cfg.name || wx).trim() };
+    return { wx: wx, name: String(cfg.name || wx).trim(), trusted: !!cfg.trusted };
   }
 
   async function claim(id, who) {
@@ -359,6 +405,9 @@
     return mutate(function (tasks) {
       var t = find(tasks, id);
       if (!t) throw new Error('任务不存在，刷新试试');
+      var lv = levelOf(t);
+      if (lv === 'A') throw new Error('A 级任务不进共享池，只能由管理员本机处理');
+      if (lv === 'B' && !me.trusted) throw new Error('B 级任务只对可信成员开放');
       if (t.status !== 'open') throw new Error('这单已经被接走了');
       var assigned = String(t.assignedTo || '').trim();
       if (assigned && assigned !== me.wx) {
@@ -452,7 +501,10 @@
 
   global.Store = {
     STATUS: STATUS,
+    LEVELS: LEVELS,
     DEFAULT_CONFIG: DEFAULT_CONFIG,
+    levelOf: levelOf,
+    canSee: canSee,
     demo: demoTasks,
     getConfig: getConfig,
     saveConfig: saveConfig,
