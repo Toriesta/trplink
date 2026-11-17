@@ -224,17 +224,17 @@
         (c.wechat
           ? '<div class="field">' +
               '<div class="field-label">已登录 · 接单身份</div>' +
-              '<div style="display:flex;align-items:center;gap:8px">' +
-                '<span style="font-size:16px;font-weight:700">' + esc(c.wechat) + '</span>' +
-                '<span class="badge done">已登录</span>' +
+              '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+                '<span style="font-size:16px;font-weight:700">' + esc(c.name || c.wechat) + '</span>' +
+                '<span class="meta">' + esc(c.wechat) + '</span>' +
                 '<span style="flex:1"></span>' +
                 '<button class="btn ghost" type="button" data-act="logout">退出</button>' +
               '</div>' +
+              '<p class="hint">身份由人才库同步，名字与微信号不能在这里改。</p>' +
             '</div>'
-          : fieldHTML('微信号', 'wechat', '', '输入微信号登录 / 注册',
-              '第一次输入即注册；已有的微信号直接登录。登录后才能接单。') +
-            '<div class="field"><button class="btn ink block" type="button" data-act="login">登录 / 注册</button></div>') +
-        fieldHTML('显示名', 'name', c.name, '例：陈成方', '展示用；任务归属按微信号算') +
+          : fieldHTML('微信号', 'wechat', '', '输入已录入人才库的微信号',
+              '被动注册：只有管理员把你加入人才库后才能登录，自己输入不会开通账号。') +
+            '<div class="field"><button class="btn ink block" type="button" data-act="login">登录</button></div>') +
       '</div>' +
 
       '<div class="section-title">数据源</div>' +
@@ -445,12 +445,11 @@
 
     if (act === 'login') {
       var wxEl = view.querySelector('[data-set="wechat"]');
-      var nmEl = view.querySelector('[data-set="name"]');
       if (!wxEl || !wxEl.value.trim()) { toast('先填微信号'); return; }
       try {
-        var user = await S.login(wxEl.value, nmEl ? nmEl.value : '');
+        var user = await S.login(wxEl.value);
         state.cfg = S.getConfig();
-        toast((user._localOnly ? '已在本机注册 ' : '已登录 ') + user.wechat);
+        toast('已登录：' + (user.name || user.wechat));
         state.tab = 'tasks';
         render();
       } catch (e) {

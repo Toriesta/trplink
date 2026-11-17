@@ -166,21 +166,15 @@
    * 普通用户没有发布入口，写入时也会校验状态流转与接单归属。
    */
   var USERS_KEY = 'trp_users_v1';
+  // 演示模式下的内置人才库：真实模式的名单以仓库 users.json 为准
+  var SEED_USERS = [
+    { wechat: 'chenchengfang', name: '陈成方', role: 'worker', registeredAt: '2026-11-17' }
+  ];
 
   function localUsers() {
-    return readJSON(USERS_KEY, { users: [] });
-  }
-
-  function saveLocalUser(user) {
-    var all = localUsers();
-    var found = false;
-    all.users = all.users.map(function (u) {
-      if (u.wechat === user.wechat) { found = true; return user; }
-      return u;
-    });
-    if (!found) all.users.push(user);
-    all.updated = isoNow();
-    writeJSON(USERS_KEY, all);
+    var cached = readJSON(USERS_KEY, null);
+    if (cached && Array.isArray(cached.users) && cached.users.length) return cached;
+    return { users: SEED_USERS.slice(), updated: isoNow() };
   }
 
   async function readUsers() {
@@ -208,22 +202,9 @@
     got.data.users.forEach(function (u) {
       if (String(u.wechat || '').trim() === wx) hit = u;
     });
-    if (hit && hit.role === 'admin') {
-      throw new Error('管理员账号不在这里登录；请用发布脚本');
-    }
-    if (!hit) {
-      hit = { wechat: wx, name: String(name || wx).trim(), role: 'worker',
-              registeredAt: todayISO() };
-      try {
-        var updated = { users: got.data.users.concat([hit]), updated: isoNow() };
-        await githubWrite(getConfig(), updated, got.sha, 'register ' + wx,
-                          getConfig().usersPath || 'users.json');
-      } catch (e) {
-        // 没有写 token 时只在本机登记：接单仍按微信号归属，管理员也能按微信号指派
-        saveLocalUser(hit);
-        hit._localOnly = true;
-      }
-    }
+    // 被动注册：只有管理员在人才库里录过的微信号才能登录
+    if (!hit) throw new Error('这个微信号还没录入人才库，请联系管理员添加');
+    if (hit.role === 'admin') throw new Error('管理员账号不在手机端登录');
     saveConfig({ wechat: wx, name: hit.name || name || wx });
     return hit;
   }

@@ -2,6 +2,7 @@
 
 本地：  python tools/publish_task.py --admin 你的微信号 --title "第 16 集粗剪" --reward 400 --deadline 2026-11-25
 指派：  python tools/publish_task.py --admin 你的微信号 --title "..." --assign-to chenchengfang --assign-name 陈成方
+录入人才：python tools/publish_task.py --admin 你的微信号 --add-worker chenchengfang --worker-name 陈成方
 首次：  python tools/publish_task.py --admin 你的微信号 --set-admin
 推仓库：再加 --repo Toriesta/trplink --push（需 GH_TOKEN 环境变量）
 
@@ -87,6 +88,8 @@ def main() -> int:
     ap.add_argument("--checklist", default="", help="竖线分隔")
     ap.add_argument("--assign-to", default="", help="指定接单人的微信号")
     ap.add_argument("--assign-name", default="", help="指定接单人的显示名")
+    ap.add_argument("--add-worker", default="", help="把微信号录入人才库（不发布任务）")
+    ap.add_argument("--worker-name", default="", help="录入人才时的显示名")
     ap.add_argument("--repo", default="", help="owner/repo，给了就提交到 GitHub")
     ap.add_argument("--branch", default="main")
     ap.add_argument("--push", action="store_true", help="提交到 GitHub（需要 GH_TOKEN）")
@@ -109,6 +112,34 @@ def main() -> int:
     if admin != configured:
         print(f"{admin} 不是管理员，只有 {configured} 能发布任务", file=sys.stderr)
         return 1
+
+    # 人才库：被动注册。只有管理员在这里录过的微信号，手机端才能登录
+    if args.add_worker:
+        wx = args.add_worker.strip()
+        users_data = load_json(USERS, {"updated": "", "users": []})
+        if not users_data.get("users"):
+            users_data["users"] = []
+        hit = next((u for u in users_data["users"]
+                    if str(u.get("wechat") or "").strip() == wx), None)
+        if hit is None:
+            hit = {"wechat": wx, "name": args.worker_name or wx,
+                   "role": "worker", "registeredAt": dt.date.today().isoformat()}
+            users_data["users"].append(hit)
+        else:
+            hit["name"] = args.worker_name or hit.get("name") or wx
+            hit["role"] = "worker"
+        users_data["updated"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
+        save_json(USERS, users_data)
+        print(f"已录入人才库：{wx}（{hit['name']}），手机端现在可以用这个微信号登录")
+        if args.push:
+            token = os.environ.get("GH_TOKEN", "").strip()
+            if not token or not args.repo:
+                print("推送需要 GH_TOKEN 和 --repo，已只写本地文件", file=sys.stderr)
+                return 1
+            push_github(args.repo, token, users_data, args.branch, "users.json",
+                        f"add worker {wx}")
+        return 0
+
     if not args.title:
         print("发布任务需要 --title", file=sys.stderr)
         return 1
