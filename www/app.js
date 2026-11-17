@@ -105,7 +105,8 @@
         (t.brief ? '<p class="card-brief">' + esc(t.brief) + '</p>' : '') +
         '<div class="card-foot">' +
           '<span class="lv lv-' + esc(t.secret) + '" title="' +
-            esc(S.LEVELS[t.secret] || '') + '">' + esc(t.secret) + '</span>' +
+            esc((S.LEVELS[t.secret] || '') + ' · 制作水平 ' + t.craft + '/10（'
+              + S.craftLabel(t.craft) + '）') + '">' + esc(S.codeOf(t)) + '</span>' +
           '<span class="meta' + (urgent ? ' urgent' : '') + '">' + esc(meta[0]) + '</span>' +
           meta.slice(1).map(function (m) {
             return '<i class="dot-sep"></i><span class="meta">' + esc(m) + '</span>';
@@ -231,6 +232,7 @@
                 '<span class="meta">' + esc(c.wechat) + '</span>' +
                 '<span class="badge ' + (c.trusted ? 'claimed' : 'muted') + '">' +
                   (c.trusted ? '可信成员 · 可见 B 级' : '普通成员 · 仅 C 级') + '</span>' +
+                '<span class="badge muted">可做到 ' + esc(c.craft_max) + '/10</span>' +
                 '<span style="flex:1"></span>' +
                 '<button class="btn ghost" type="button" data-act="logout">退出</button>' +
               '</div>' +
@@ -334,8 +336,9 @@
     sheetBody.innerHTML = '' +
       '<div class="row">' +
         '<span class="badge ' + esc(t.status) + '">' + esc(S.STATUS[t.status] || t.status) + '</span>' +
-        '<span class="lv lv-' + esc(t.secret) + '">' + esc(t.secret) + '</span>' +
-        '<span class="meta">' + esc(S.LEVELS[t.secret] || '') + '</span>' +
+        '<span class="lv lv-' + esc(t.secret) + '">' + esc(S.codeOf(t)) + '</span>' +
+        '<span class="meta">' + esc(S.LEVELS[t.secret] || '') + ' · 制作水平 ' +
+          esc(t.craft) + '/10（' + esc(S.craftLabel(t.craft)) + '）</span>' +
         '<span class="meta">' + esc(t.id) + '</span>' +
         (left !== null && left <= 2 && t.status === 'open'
           ? '<span class="meta urgent">' + esc(S.deadlineText(t.deadline)) + '</span>' : '') +

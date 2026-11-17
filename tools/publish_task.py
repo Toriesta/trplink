@@ -95,6 +95,10 @@ def main() -> int:
     ap.add_argument("--untrust-worker", default="", help="取消可信身份")
     ap.add_argument("--secret", default="A", choices=["A", "B", "C"],
                     help="保密等级：A 只留本机、B 仅可信成员、C 任何人可接（默认 A）")
+    ap.add_argument("--craft", type=int, default=5, choices=list(range(0, 11)),
+                    help="制作水平 0–10，默认 5；与保密等级合成 A5 这样的编码")
+    ap.add_argument("--craft-max", type=int, default=0, choices=list(range(0, 11)),
+                    help="录入/授权人才时：此人能做的最高制作水平（0–10）")
     ap.add_argument("--repo", default="", help="owner/repo，给了就提交到 GitHub")
     ap.add_argument("--branch", default="main")
     ap.add_argument("--push", action="store_true", help="提交到 GitHub（需要 GH_TOKEN）")
@@ -128,11 +132,15 @@ def main() -> int:
                     if str(u.get("wechat") or "").strip() == wx), None)
         if hit is None:
             hit = {"wechat": wx, "name": args.worker_name or wx,
-                   "role": "worker", "registeredAt": dt.date.today().isoformat()}
+                   "role": "worker", "trusted": False,
+                   "craft_max": args.craft_max or 5,
+                   "registeredAt": dt.date.today().isoformat()}
             users_data["users"].append(hit)
         else:
             hit["name"] = args.worker_name or hit.get("name") or wx
             hit["role"] = "worker"
+            if args.craft_max:
+                hit["craft_max"] = args.craft_max
         users_data["updated"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
         save_json(USERS, users_data)
         print(f"已录入人才库：{wx}（{hit['name']}），手机端现在可以用这个微信号登录")
@@ -159,11 +167,14 @@ def main() -> int:
                 print(f"人才库里没有 {wx}", file=sys.stderr)
                 return 1
             hit = {"wechat": wx, "name": args.worker_name or wx,
-                   "role": "worker", "registeredAt": dt.date.today().isoformat()}
+                   "role": "worker", "craft_max": args.craft_max or 5,
+                   "registeredAt": dt.date.today().isoformat()}
             users_data["users"].append(hit)
         hit["trusted"] = flag
         if args.worker_name:
             hit["name"] = args.worker_name
+        if args.craft_max:
+            hit["craft_max"] = args.craft_max
         users_data["updated"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
         save_json(USERS, users_data)
         print(f"{wx} " + ("已升为可信成员（可见并接 B 级）" if flag else "已取消可信（只接 C 级）"))
@@ -211,6 +222,7 @@ def main() -> int:
         "priority": int(args.priority or 2),
         "tags": [t.strip() for t in (args.tags or "").split(",") if t.strip()],
         "secret": secret,
+        "craft": int(args.craft),
         "assignedTo": (args.assign_to or "").strip(),
         "status": "open",
         "claimedBy": "",
@@ -231,12 +243,21 @@ def main() -> int:
                       file=sys.stderr)
                 return 1
             hit = {"wechat": wx, "name": args.assign_name or wx,
-                   "role": "worker", "registeredAt": dt.date.today().isoformat()}
+                   "role": "worker", "craft_max": args.craft_max or 5,
+                   "registeredAt": dt.date.today().isoformat()}
             users_data["users"].append(hit)
         elif secret == "B" and not hit.get("trusted"):
             print(f"{wx} 还不可信，B 级任务不能派给他：先 --trust-worker {wx}",
                   file=sys.stderr)
             return 1
+
+        need = int(task["craft"])
+        have = int(hit.get("craft_max") if hit.get("craft_max") is not None else 5)
+        if need > have:
+            print(f"{wx} 的制作水平上限是 {have}，这单是 {secret}{need}；"
+                  f"先 --craft-max {need} 授权，或换一个人", file=sys.stderr)
+            return 1
+
         task["status"] = "claimed"
         task["claimedBy"] = wx
         task["claimedName"] = hit.get("name") or wx
@@ -251,7 +272,7 @@ def main() -> int:
         save_json(USERS, users_data)
 
     who = "指派给 " + task["assignedTo"] if task["assignedTo"] else "公开抢单"
-    print(f"已发布 {task['id']} {task['title']}（{secret} 级 · {who}）")
+    print(f"已发布 {task['id']} {task['title']}（等级 {secret}{task['craft']} · {who}）")
     if secret == "A":
         print(f"  已写入 {PRIVATE.name}，只在本机，不会同步到 GitHub")
 

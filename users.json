@@ -1,21 +1,23 @@
 {
-  "updated": "2026-11-17T15:30:00+08:00",
+  "updated": "2026-11-17T18:00:00+08:00",
   "users": [
     {
       "wechat": "SimoHoia0523",
       "name": "商务",
       "role": "admin",
       "trusted": true,
+      "craft_max": 10,
       "registeredAt": "2026-11-17",
-      "note": "管理员：唯一可发布 / 指派 / 改密级的人"
+      "note": "管理员：唯一可发布 / 指派 / 改密级与制作水平的人"
     },
     {
       "wechat": "chenchengfang",
       "name": "陈成方",
       "role": "worker",
       "trusted": true,
+      "craft_max": 8,
       "registeredAt": "2026-11-17",
-      "note": "可信接单人：可见并接 B 级任务"
+      "note": "可信接单人：可见并接 B 级；能独立处理制作水平 8 以内的活"
     }
   ]
 }

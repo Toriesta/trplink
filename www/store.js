@@ -22,11 +22,32 @@
     token: '',
     wechat: '',          // 微信号：登录身份，接单归属按它算
     name: '',            // 显示名（可填真实姓名）
-    trusted: false       // 可信成员：能看并接 B 级任务
+    trusted: false,      // 可信成员：能看并接 B 级任务
+    craft_max: 10        // 我能做的最高制作水平（0–10）
   };
 
   // 保密等级：A 只留在管理员本机（不进共享池），B 仅可信成员，C 任何人可接
   var LEVELS = { A: 'A 级 · 仅本人', B: 'B 级 · 可信成员', C: 'C 级 · 可外包' };
+
+  function craftOf(task) {
+    var v = Number(task && task.craft);
+    if (!isFinite(v)) return 5;
+    return Math.max(0, Math.min(10, Math.round(v)));
+  }
+
+  function craftLabel(v) {
+    var n = Math.max(0, Math.min(10, Math.round(Number(v) || 0)));
+    if (n <= 2) return '基础';
+    if (n <= 4) return '偏低';
+    if (n <= 6) return '中等';
+    if (n <= 8) return '较高';
+    return '高难';
+  }
+
+  // 统一编码：保密等级 + 制作水平，例如 A5 / B1
+  function codeOf(task) {
+    return levelOf(task) + craftOf(task);
+  }
 
   var STATUS = {
     open: '待接',
@@ -85,7 +106,7 @@
               '字幕按现有术语表校对。交付前自检一遍跳帧与口型。',
         reward: 1200,
         deadline: day(3),
-        secret: 'B', priority: 1,
+        secret: 'B', craft: 4, priority: 1,
         tags: ['剪辑', 'ODSUS'],
         status: 'open',
         claimedBy: '',
@@ -101,7 +122,7 @@
               '景别与单镜时长，参考图可用 ODSUS 生成，不必精修。',
         reward: 800,
         deadline: day(6),
-        secret: 'C', priority: 2,
+        secret: 'C', craft: 6, priority: 2,
         tags: ['分镜', '文旅'],
         status: 'open',
         claimedBy: '',
@@ -117,7 +138,7 @@
               '结果整理成一页 markdown，附 3 条可执行建议。',
         reward: 300,
         deadline: day(-1),
-        secret: 'C', priority: 1,
+        secret: 'C', craft: 2, priority: 1,
         tags: ['运营', 'Torie'],
         status: 'open',
         claimedBy: '',
@@ -133,7 +154,7 @@
               '英文文案需母语者可读，不必配音，先出画面与字幕。',
         reward: 1500,
         deadline: day(9),
-        secret: 'B', priority: 2,
+        secret: 'B', craft: 7, priority: 2,
         tags: ['海外', '英文'],
         status: 'claimed',
         claimedBy: '陈成方',
@@ -173,7 +194,7 @@
   // 演示模式下的内置人才库：真实模式的名单以仓库 users.json 为准
   var SEED_USERS = [
     { wechat: 'chenchengfang', name: '陈成方', role: 'worker', trusted: true,
-      registeredAt: '2026-11-17' }
+      craft_max: 8, registeredAt: '2026-11-17' }
   ];
 
   function localUsers() {
@@ -210,7 +231,12 @@
     // 被动注册：只有管理员在人才库里录过的微信号才能登录
     if (!hit) throw new Error('这个微信号还没录入人才库，请联系管理员添加');
     if (hit.role === 'admin') throw new Error('管理员账号不在手机端登录');
-    saveConfig({ wechat: wx, name: hit.name || name || wx, trusted: !!hit.trusted });
+    saveConfig({
+      wechat: wx,
+      name: hit.name || name || wx,
+      trusted: !!hit.trusted,
+      craft_max: Number(hit.craft_max != null ? hit.craft_max : 10),
+    });
     return hit;
   }
 
@@ -240,7 +266,13 @@
       got.data.users.forEach(function (u) {
         if (String(u.wechat || '').trim() === cfg.wechat) hit = u;
       });
-      if (hit) saveConfig({ trusted: !!hit.trusted, name: hit.name || cfg.name });
+      if (hit) {
+        saveConfig({
+          trusted: !!hit.trusted,
+          name: hit.name || cfg.name,
+          craft_max: Number(hit.craft_max != null ? hit.craft_max : cfg.craft_max),
+        });
+      }
     } catch (e) { /* 离线时沿用本地缓存 */ }
     return getConfig();
   }
@@ -322,6 +354,7 @@
         }, t);
         row.secret = String(row.secret || 'C').toUpperCase();
         if (['A', 'B', 'C'].indexOf(row.secret) < 0) row.secret = 'C';
+        row.craft = craftOf(row);
         return row;
       })
     };
@@ -397,7 +430,12 @@
     var cfg = getConfig();
     var wx = String(cfg.wechat || '').trim();
     if (!wx) throw new Error('先用微信号登录，再接单');
-    return { wx: wx, name: String(cfg.name || wx).trim(), trusted: !!cfg.trusted };
+    return {
+      wx: wx,
+      name: String(cfg.name || wx).trim(),
+      trusted: !!cfg.trusted,
+      craftMax: Number(cfg.craft_max != null ? cfg.craft_max : 10),
+    };
   }
 
   async function claim(id, who) {
@@ -408,6 +446,10 @@
       var lv = levelOf(t);
       if (lv === 'A') throw new Error('A 级任务不进共享池，只能由管理员本机处理');
       if (lv === 'B' && !me.trusted) throw new Error('B 级任务只对可信成员开放');
+      if (craftOf(t) > me.craftMax) {
+        throw new Error('这单制作水平 ' + craftOf(t) + '，超过你登记的 '
+          + me.craftMax + '；先升级能力，或让管理员直接指派');
+      }
       if (t.status !== 'open') throw new Error('这单已经被接走了');
       var assigned = String(t.assignedTo || '').trim();
       if (assigned && assigned !== me.wx) {
@@ -504,6 +546,9 @@
     LEVELS: LEVELS,
     DEFAULT_CONFIG: DEFAULT_CONFIG,
     levelOf: levelOf,
+    craftOf: craftOf,
+    craftLabel: craftLabel,
+    codeOf: codeOf,
     canSee: canSee,
     demo: demoTasks,
     getConfig: getConfig,

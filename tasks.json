@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-17T09:00:00+08:00",
+  "updated": "2026-11-17T19:27:47+08:00",
   "tasks": [
     {
       "id": "T-2611-01",
@@ -24,7 +24,8 @@
       ],
       "assignedTo": "",
       "claimedName": "",
-      "secret": "B"
+      "secret": "B",
+      "craft": 4
     },
     {
       "id": "T-2611-02",
@@ -49,7 +50,8 @@
       ],
       "assignedTo": "",
       "claimedName": "",
-      "secret": "C"
+      "secret": "C",
+      "craft": 6
     },
     {
       "id": "T-2611-03",
@@ -74,7 +76,8 @@
       ],
       "assignedTo": "",
       "claimedName": "",
-      "secret": "C"
+      "secret": "C",
+      "craft": 2
     },
     {
       "id": "T-2611-04",
@@ -99,7 +102,27 @@
       ],
       "assignedTo": "",
       "claimedName": "陈成方",
-      "secret": "B"
+      "secret": "B",
+      "craft": 7
+    },
+    {
+      "id": "T-2611-05",
+      "title": "等级编码测试",
+      "brief": "",
+      "desc": "",
+      "reward": 100.0,
+      "deadline": "",
+      "priority": 2,
+      "tags": [],
+      "secret": "C",
+      "craft": 7,
+      "assignedTo": "",
+      "status": "open",
+      "claimedBy": "",
+      "claimedName": "",
+      "claimedAt": "",
+      "submittedAt": "",
+      "checklist": []
     }
   ]
 }
