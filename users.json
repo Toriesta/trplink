@@ -1,12 +1,19 @@
 {
-  "updated": "2026-11-17T14:00:00+08:00",
+  "updated": "2026-11-17T15:00:00+08:00",
   "users": [
+    {
+      "wechat": "SimoHoia0523",
+      "name": "商务",
+      "role": "admin",
+      "registeredAt": "2026-11-17",
+      "note": "管理员：只有此微信号可以发布和指派任务"
+    },
     {
       "wechat": "chenchengfang",
       "name": "陈成方",
       "role": "worker",
       "registeredAt": "2026-11-17",
-      "note": "示例：接单人。真实使用时把微信号改成本人的"
+      "note": "接单人示例，微信号按实际改"
     }
   ]
 }

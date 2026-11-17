@@ -1,4 +1,4 @@
 {
-  "adminWechat": "",
-  "note": "填你的微信号；publish_task.py 发布/指派时会校验 --admin 与这里一致。留空时任何人都不能通过脚本发布。"
+  "adminWechat": "SimoHoia0523",
+  "note": "唯一管理员微信号；publish_task.py 发布/指派时会校验 --admin 与这里一致。"
 }
