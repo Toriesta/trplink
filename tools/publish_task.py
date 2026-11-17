@@ -123,7 +123,15 @@ def main() -> int:
         print(f"{admin} 不是管理员，只有 {configured} 能发布任务", file=sys.stderr)
         return 1
 
-    # 人才库：被动注册。只有管理员在这里录过的微信号，手机端才能登录
+    def next_code(users):
+        """新成员分配 4 位工号；中文键盘打不了微信号，手机端只认工号。"""
+        used = {str(u.get("code") or "").strip() for u in users}
+        i = 1001
+        while f"{i:04d}" in used:
+            i += 1
+        return f"{i:04d}"
+
+    # 人才库：被动注册。只有管理员在这里录过的人，手机端才能用工号登录
     if args.add_worker:
         wx = args.add_worker.strip()
         users_data = load_json(USERS, {"updated": "", "users": []})
@@ -132,7 +140,8 @@ def main() -> int:
         hit = next((u for u in users_data["users"]
                     if str(u.get("wechat") or "").strip() == wx), None)
         if hit is None:
-            hit = {"wechat": wx, "name": args.worker_name or wx,
+            hit = {"code": next_code(users_data["users"]),
+                   "wechat": wx, "name": args.worker_name or wx,
                    "role": "worker", "trusted": False,
                    "craft_max": args.craft_max or 5,
                    "registeredAt": dt.date.today().isoformat()}
@@ -144,7 +153,7 @@ def main() -> int:
                 hit["craft_max"] = args.craft_max
         users_data["updated"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
         save_json(USERS, users_data)
-        print(f"已录入人才库：{wx}（{hit['name']}），手机端现在可以用这个微信号登录")
+        print(f"已录入人才库：{hit['name']}（{wx}），手机端用 4 位工号 {hit.get('code')} 登录")
         if args.push:
             token = os.environ.get("GH_TOKEN", "").strip()
             if not token or not args.repo:
@@ -167,7 +176,8 @@ def main() -> int:
             if not flag:
                 print(f"人才库里没有 {wx}", file=sys.stderr)
                 return 1
-            hit = {"wechat": wx, "name": args.worker_name or wx,
+            hit = {"code": next_code(users_data["users"]),
+                   "wechat": wx, "name": args.worker_name or wx,
                    "role": "worker", "craft_max": args.craft_max or 5,
                    "registeredAt": dt.date.today().isoformat()}
             users_data["users"].append(hit)

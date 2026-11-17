@@ -10,21 +10,19 @@
 
   var CFG_KEY = 'trp_tasks_cfg_v1';
   var CACHE_KEY = 'trp_tasks_cache_v1';
-  var LOCAL_KEY = 'trp_tasks_local_v1';
 
+  // 仓库固定：使用者不需要也不允许改数据源。仓库地址随 App 发布，换仓库由管理员重打包。
+  var REPO = { owner: 'Toriesta', repo: 'trplink', branch: 'main' };
   var DEFAULT_CONFIG = {
-    mode: 'local',       // local | github
-    owner: 'Toriesta',
-    repo: 'trplink',
-    branch: 'main',
+    owner: REPO.owner, repo: REPO.repo, branch: REPO.branch,
     path: 'tasks.json',
     usersPath: 'users.json',
     ratingsPath: 'ratings.json',
-    token: '',
-    wechat: '',          // 微信号：登录身份，接单归属按它算
-    name: '',            // 显示名（可填真实姓名）
-    trusted: false,      // 可信成员：能看并接 B 级任务
-    craft_max: 10        // 我能做的最高制作水平（0–10）
+    token: '',           // 接单/交付要写仓库时才需要，填一次存本机
+    wechat: '',          // 登录身份由工号映射，接单归属仍按微信号算
+    name: '',
+    trusted: false,
+    craft_max: 10
   };
 
   // 保密等级：A 只留在管理员本机（不进共享池），B 仅可信成员，C 任何人可接
@@ -90,9 +88,6 @@
     } catch (e) { /* 容量满或隐私模式，忽略 */ }
   }
 
-  /* ------------------------------------------------------------ 演示数据 */
-  function demoTasks() { return []; }   // 正经软件不放假任务
-
   /* ------------------------------------------------------------ 配置 */
   function getConfig() {
     var cfg = readJSON(CFG_KEY, null) || {};
@@ -119,9 +114,9 @@
    * 普通用户没有发布入口，写入时也会校验状态流转与接单归属。
    */
   var USERS_KEY = 'trp_users_v1';
-  // 演示模式下的内置人才库：真实模式的名单以仓库 users.json 为准
+  // 离线兜底名单：正常从固定仓库 users.json 拉取，缓存用于断网时登录
   var SEED_USERS = [
-    { wechat: 'chenchengfang', name: '陈成方', role: 'worker', trusted: true,
+    { code: '1002', wechat: 'chenchengfang', name: '陈成方', role: 'worker', trusted: true,
       craft_max: 8, registeredAt: '2026-11-17' }
   ];
 
@@ -133,35 +128,34 @@
 
   async function readUsers() {
     var cfg = getConfig();
-    if (cfg.mode === 'github' && gitReady(cfg)) {
-      try {
-        var got = await githubRead(cfg, cfg.usersPath || 'users.json');
-        var data = got.data || { users: [] };
-        if (!Array.isArray(data.users)) data.users = [];
-        writeJSON(USERS_KEY, data);   // 缓存一份，离线也能登录
-        return { data: data, sha: got.sha, source: 'github' };
-      } catch (e) {
-        var cached = localUsers();
-        return { data: cached, sha: '', source: 'cache', error: (e && e.message) || '' };
-      }
+    try {
+      var got = await githubRead(cfg, cfg.usersPath || 'users.json');
+      var data = got.data || { users: [] };
+      if (!Array.isArray(data.users)) data.users = [];
+      writeJSON(USERS_KEY, data);   // 缓存一份，离线也能登录
+      return { data: data, sha: got.sha, source: 'github' };
+    } catch (e) {
+      var cached = localUsers();
+      return { data: cached, sha: '', source: 'cache', error: (e && e.message) || '' };
     }
-    return { data: localUsers(), sha: '', source: 'local' };
   }
 
-  async function login(wechat, name) {
-    var wx = String(wechat || '').trim();
-    if (!wx) throw new Error('请填微信号');
+  // 数字工号登录：中文输入法打不出微信号，也不允许点名字冒名顶替
+  async function login(codeOrWechat) {
+    var key = String(codeOrWechat || '').trim();
+    if (!key) throw new Error('请填 4 位工号');
+    if (/[\u4e00-\u9fff]/.test(key)) throw new Error('工号只能是数字');
     var got = await readUsers();
     var hit = null;
     got.data.users.forEach(function (u) {
-      if (String(u.wechat || '').trim() === wx) hit = u;
+      if (String(u.code || '').trim() === key) hit = u;
     });
-    // 被动注册：只有管理员在人才库里录过的微信号才能登录
-    if (!hit) throw new Error('这个微信号还没录入人才库，请联系管理员添加');
+    // 只有管理员录入人才库的人才有工号；不存在「点名字登录」这种冒名入口
+    if (!hit) throw new Error('工号不在人才库里，请联系管理员确认');
     if (hit.role === 'admin') throw new Error('管理员账号不在手机端登录');
     saveConfig({
-      wechat: wx,
-      name: hit.name || name || wx,
+      wechat: String(hit.wechat || '').trim(),
+      name: hit.name || '',
       trusted: !!hit.trusted,
       craft_max: Number(hit.craft_max != null ? hit.craft_max : 10),
     });
@@ -298,16 +292,7 @@
     var cfg = await refreshTrust(getConfig());
     var force = !!(opts && opts.force);
 
-    if (cfg.mode !== 'github' || !gitReady(cfg)) {
-      var local = readJSON(LOCAL_KEY, null);
-      if (!local) {
-        local = { updated: isoNow(), tasks: demoTasks() };
-        writeJSON(LOCAL_KEY, local);
-      }
-      return { data: sanitize(normalize(local), cfg), source: 'local',
-               sha: '', offline: false, error: '' };
-    }
-
+    // 仓库固定，不存在「演示数据」模式；断网只读本机缓存，不造任务
     var cache = readJSON(CACHE_KEY, null);
     if (!force && cache && cache.data) {
       // 先给缓存，网络在后台刷新；这一层由 app.js 决定是否 await
@@ -332,14 +317,6 @@
   async function mutate(mutator, message) {
     var cfg = getConfig();
 
-    if (cfg.mode !== 'github' || !gitReady(cfg)) {
-      var local = readJSON(LOCAL_KEY, null) || { updated: isoNow(), tasks: demoTasks() };
-      mutator(local.tasks);
-      local.updated = isoNow();
-      writeJSON(LOCAL_KEY, local);
-      return { data: sanitize(normalize(local), cfg), source: 'local', sha: '', offline: false };
-    }
-
     var got = await githubRead(cfg);   // 始终拿最新 sha，降低冲突
     var payload = got.data && Array.isArray(got.data.tasks) ? got.data : { tasks: [] };
     mutator(payload.tasks);
@@ -361,19 +338,16 @@
 
   async function readRatings() {
     var cfg = getConfig();
-    if (cfg.mode === 'github' && gitReady(cfg)) {
-      try {
-        var got = await githubRead(cfg, cfg.ratingsPath || 'ratings.json');
-        var data = got.data || { ratings: [] };
-        if (!Array.isArray(data.ratings)) data.ratings = [];
-        writeJSON(RATINGS_KEY, data);
-        return { data: data, sha: got.sha, source: 'github' };
-      } catch (e) {
-        var cached = localRatings();
-        return { data: cached, sha: '', source: 'cache', error: (e && e.message) || '' };
-      }
+    try {
+      var got = await githubRead(cfg, cfg.ratingsPath || 'ratings.json');
+      var data = got.data || { ratings: [] };
+      if (!Array.isArray(data.ratings)) data.ratings = [];
+      writeJSON(RATINGS_KEY, data);
+      return { data: data, sha: got.sha, source: 'github' };
+    } catch (e) {
+      var cached = localRatings();
+      return { data: cached, sha: '', source: 'cache', error: (e && e.message) || '' };
     }
-    return { data: localRatings(), sha: '', source: 'local' };
   }
 
   async function rateClient(client, stars, tags, note) {
@@ -399,14 +373,12 @@
     var payload = { updated: isoNow(), ratings: list };
 
     var cfg = getConfig();
-    if (cfg.mode === 'github' && gitReady(cfg)) {
-      try {
-        await githubWrite(cfg, payload, got.sha, 'rate ' + name + ' by ' + me.wx,
-                          cfg.ratingsPath || 'ratings.json');
-      } catch (e) {
-        writeJSON(RATINGS_KEY, payload);
-        return { row: row, localOnly: true, error: (e && e.message) || '' };
-      }
+    try {
+      await githubWrite(cfg, payload, got.sha, 'rate ' + name + ' by ' + me.wx,
+                        cfg.ratingsPath || 'ratings.json');
+    } catch (e) {
+      writeJSON(RATINGS_KEY, payload);
+      return { row: row, localOnly: true, error: (e && e.message) || '' };
     }
     writeJSON(RATINGS_KEY, payload);
     return { row: row, localOnly: false };
@@ -500,7 +472,7 @@
 
   async function syncFromGitHub() {
     var cfg = getConfig();
-    if (cfg.mode !== 'github' || !gitReady(cfg)) throw new Error('还没配置 GitHub 仓库');
+    if (!gitReady(cfg)) throw new Error('仓库配置异常，请重装 App');
     var got = await githubRead(cfg);
     writeJSON(CACHE_KEY, { data: got.data, sha: got.sha, at: Date.now() });
     return { data: normalize(got.data), sha: got.sha };
@@ -559,7 +531,6 @@
     craftLabel: craftLabel,
     codeOf: codeOf,
     canSee: canSee,
-    demo: demoTasks,
     getConfig: getConfig,
     saveConfig: saveConfig,
     gitReady: gitReady,

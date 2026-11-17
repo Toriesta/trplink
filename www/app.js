@@ -165,7 +165,7 @@
         '</div>' +
         '<p>' + esc(dateLine()) +
         (state.cfg.wechat ? ' · ' + esc(state.cfg.wechat) : ' · 未登录，接单前先登录') +
-        (state.source === 'github' ? ' · 已连仓库' : ' · 演示数据') +
+        (state.source === 'github' ? (state.offline ? ' · 离线缓存' : ' · 已连仓库') : ' · 读取中') +
         (state.offline ? ' · 离线缓存' : '') + '</p>' +
       '</section>' +
       '<div class="chips">' + chips.map(function (c) {
@@ -217,11 +217,10 @@
 
   function renderSettings() {
     var c = state.cfg;
-    var github = c.mode === 'github';
 
     view.innerHTML = '' +
       '<section class="hero"><div class="hero-row"><h1>设置</h1></div>' +
-      '<p>微信号登录 · 改完点下面保存</p></section>' +
+      '<p>数字工号登录 · 仓库随 App 固定</p></section>' +
 
       '<div class="section-title">账号</div>' +
       '<div class="panel">' +
@@ -239,37 +238,24 @@
               '</div>' +
               '<p class="hint">身份由人才库同步，名字与微信号不能在这里改。</p>' +
             '</div>'
-          : fieldHTML('微信号', 'wechat', '', '输入已录入人才库的微信号',
-              '被动注册：只有管理员把你加入人才库后才能登录，自己输入不会开通账号。') +
-            '<div class="field"><button class="btn ink block" type="button" data-act="login">登录</button></div>' +
-            '<div class="field" id="rosterBox"><p class="hint">读取人才库中…</p></div>') +
+          : fieldHTML('工号', 'code', '', '4 位数字工号',
+              '工号由管理员在人才库分配；不能点名字冒名登录。') +
+            '<div class="field"><button class="btn ink block" type="button" data-act="login">登录</button></div>') +
       '</div>' +
 
-      '<div class="section-title">数据源</div>' +
+      '<div class="section-title">连接</div>' +
       '<div class="panel">' +
         '<div class="field">' +
-          '<div class="seg">' +
-            '<button type="button" data-act="mode" data-mode="local" class="' +
-              (!github ? 'is-on' : '') + '">演示数据</button>' +
-            '<button type="button" data-act="mode" data-mode="github" class="' +
-              (github ? 'is-on' : '') + '">GitHub 仓库</button>' +
-          '</div>' +
-          '<p class="hint">演示数据只存在手机上；GitHub 模式让手机和电脑共用一份任务。</p>' +
+          '<div class="field-label">仓库（随 App 固定）</div>' +
+          '<p class="hint">' + esc(c.owner + '/' + c.repo + ' · ' + c.branch) + '</p>' +
+          '<p class="hint">断网时只读本机缓存，不会出现假任务；换仓库由管理员重打包。</p>' +
         '</div>' +
-        (github ? (
-          fieldHTML('仓库 owner', 'owner', c.owner, '你的 GitHub 用户名 / 组织名') +
-          fieldHTML('仓库名', 'repo', c.repo, '例：trp-tasks') +
-          fieldHTML('分支', 'branch', c.branch, 'main') +
-          fieldHTML('任务文件路径', 'path', c.path, 'tasks.json') +
-          fieldHTML('访问令牌（可选）', 'token', c.token,
-            'github_pat_…', '读公开仓库不需要 token；抢单、提交要改文件，需要 contents: write 的 token。' +
-            '只存在本机，不会上传到别处。', 'password')
-        ) : '') +
+        fieldHTML('访问令牌', 'token', c.token, 'github_pat_…',
+          '接单、交付、评分需要写仓库时才用到；填一次存在本机，不会上传。', 'password') +
       '</div>' +
 
-      '<div class="actions" style="display:flex;gap:9px;margin:0 0 16px">' +
-        '<button class="btn ink block" type="button" data-act="save">保存' + (github ? '并同步' : '') + '</button>' +
-        '<button class="btn ghost block" type="button" data-act="reset">重置演示</button>' +
+      '<div class="actions" style="margin:0 0 16px">' +
+        '<button class="btn ink block" type="button" data-act="save">保存令牌</button>' +
       '</div>' +
 
       '<div class="section-title">发布任务</div>' +
@@ -282,7 +268,7 @@
 
       '<div class="about">' +
         '<b>TRP 任务台</b> · v1.0.0 · 天枢架构内部工具<br>' +
-        '数据源：' + (github ? 'GitHub · ' + esc(c.owner + '/' + c.repo) : '本机演示数据') +
+        '仓库：' + esc(c.owner + '/' + c.repo) + '（随 App 固定）' +
         (state.updated ? '<br>任务更新时间：' + esc(String(state.updated).replace('T', ' ').slice(0, 16)) : '') +
         '<br>象牙白 / 深紫 / 珊瑚 · 与 TRP Link 同一套色板' +
       '</div>';
@@ -291,10 +277,7 @@
   function render() {
     if (state.tab === 'tasks') renderTasks();
     else if (state.tab === 'mine') renderMine();
-    else {
-      renderSettings();
-      fillRoster();
-    }
+    else renderSettings();
 
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
       b.classList.toggle('is-active', b.getAttribute('data-tab') === state.tab);
@@ -479,24 +462,20 @@
     refreshBtn.classList.add('is-spinning');
     await load(true);
     // 人才库和任务池是两个文件：只刷任务会导致刚加的人「刷新了也登不了」
-    if (S.getConfig().mode === 'github') {
-      try { await S.readUsers(); } catch (e) { /* 离线时沿用缓存 */ }
-    }
+    try { await S.readUsers(); } catch (e) { /* 离线时沿用缓存 */ }
     refreshBtn.classList.remove('is-spinning');
     if (!state.error) toast('已同步任务与人才库');
   }
 
   /* ------------------------------------------------------------ 事件 */
-  async function doLogin(wx) {
-    wx = String(wx || '').trim();
-    if (!wx) { toast('先填微信号'); return; }
-    // 中文输入法会把 yf072415 变成汉字，早一点拦住并给出明确指引
-    if (/[\u4e00-\u9fff]/.test(wx)) {
-      toast('微信号不能是中文：点键盘左上角「中」切到英文再输入');
+  async function doLogin(code) {
+    code = String(code || '').trim();
+    if (!/^\d{4}$/.test(code)) {
+      toast('工号是 4 位数字，请切数字键盘输入');
       return;
     }
     try {
-      var user = await S.login(wx);
+      var user = await S.login(code);
       state.cfg = S.getConfig();
       toast('已登录：' + (user.name || user.wechat));
       state.tab = 'tasks';
@@ -505,30 +484,8 @@
     } catch (e) {
       var msg = (e && e.message) || '登录失败';
       toast(msg.indexOf('人才库') >= 0
-        ? '人才库里没有这个号；刚加人的话点右上角刷新再试' : msg);
+        ? '工号不在人才库；刚加人的话点右上角刷新再试' : msg);
     }
-  }
-
-  function fillRoster() {
-    var box = view.querySelector('#rosterBox');
-    if (!box) return;
-    S.readUsers().then(function (got) {
-      box = view.querySelector('#rosterBox');
-      if (!box) return;
-      var users = (got.data.users || []).filter(function (u) {
-        return u.role !== 'admin' && u.wechat;
-      });
-      if (!users.length) {
-        box.innerHTML = '<p class="hint">人才库还没有成员，请联系管理员录入。</p>';
-        return;
-      }
-      // 真机上中文键盘打微信号很痛：直接点名字登录，不用手输
-      box.innerHTML = '<p class="hint">或从人才库选择：' +
-        users.slice(0, 8).map(function (u) {
-          return '<button class="link" type="button" data-act="pick-user" data-wx="' +
-            esc(u.wechat) + '">' + esc(u.name || u.wechat) + '</button>';
-        }).join(' · ') + '</p>';
-    }).catch(function () { /* 读不到就保持手动输入 */ });
   }
 
   document.addEventListener('click', async function (ev) {
@@ -538,13 +495,8 @@
     var id = el.getAttribute('data-id');
 
     if (act === 'login') {
-      var wxEl = view.querySelector('[data-set="wechat"]');
-      await doLogin(wxEl ? wxEl.value : '');
-      return;
-    }
-    if (act === 'pick-user') {
-      ev.stopPropagation();
-      await doLogin(el.getAttribute('data-wx'));
+      var codeEl = view.querySelector('[data-set="code"]');
+      await doLogin(codeEl ? codeEl.value : '');
       return;
     }
     if (act === 'logout') {
@@ -603,39 +555,12 @@
     if (act === 'close') { closeSheet(); return; }
     if (act === 'filter') { state.filter = el.getAttribute('data-filter'); render(); return; }
 
-    if (act === 'mode') {
-      state.cfg = S.saveConfig({ mode: el.getAttribute('data-mode') });
-      render();
-      return;
-    }
-
     if (act === 'save') {
-      var patch = {};
-      Array.prototype.forEach.call(view.querySelectorAll('[data-set]'), function (input) {
-        patch[input.getAttribute('data-set')] = input.value.trim();
-      });
-      state.cfg = S.saveConfig(patch);
-      if (state.cfg.mode === 'github') {
-        toast('已保存，正在同步…');
-        doRefresh();
-      } else {
-        toast('已保存');
-        state.tab = 'tasks';
-        load(true);
-      }
-      return;
-    }
-
-    if (act === 'reset') {
-      try {
-        localStorage.removeItem('trp_tasks_local_v1');
-        localStorage.removeItem('trp_tasks_cache_v1');
-      } catch (e) { /* ignore */ }
-      S.saveConfig({ mode: 'local' });
-      state.cfg = S.getConfig();
-      state.filter = 'all';
-      toast('已重置为演示数据');
-      load(true);
+      // 只允许改令牌；仓库、身份都由管理员与 App 决定
+      var tokenInput = view.querySelector('[data-set="token"]');
+      state.cfg = S.saveConfig({ token: tokenInput ? tokenInput.value.trim() : '' });
+      toast('令牌已保存，正在同步…');
+      doRefresh();
       return;
     }
   });
