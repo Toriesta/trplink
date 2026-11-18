@@ -1126,55 +1126,28 @@ svg { display: block; }
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
-  border-radius: 20px;
-  background: linear-gradient(145deg, #1E1434 0%, #130D23 100%);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 16px 30px rgba(15, 7, 30, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  color: #F4F0E6;
+  padding: 13px 14px;
+  border-radius: 16px;
+  background: #FFFDF9;
+  border: 1px solid rgba(120, 110, 150, 0.14);
+  box-shadow: none;
+  color: #221A33;
   overflow: visible;
 }
+.card.tcard::before,
 .card.tcard::after { display: none; }
-.card.tcard::before {
-  top: 16px;
-  bottom: 16px;
-  width: 3px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #FF8B78, #E1503F);
-  box-shadow: 0 0 12px rgba(255, 110, 91, 0.45);
-}
-.card.tcard.p2::before {
-  background: linear-gradient(180deg, #8B7AC0, #6C5B9B);
-  box-shadow: 0 0 12px rgba(108, 91, 155, 0.45);
-}
-.card.tcard.p3::before {
-  background: linear-gradient(180deg, #4A3F66, #2E2547);
-  box-shadow: none;
-}
 
-.tcard-badge {
-  width: 44px;
-  height: 44px;
+.tcard-role { width: 40px; height: 40px; flex: 0 0 auto; border-radius: 50%; }
+.tcard-level {
+  width: 40px;
+  height: 40px;
   flex: 0 0 auto;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  font: 700 12.5px/1 var(--din);
-  letter-spacing: 0.3px;
-  color: #FFD9CF;
-  background: radial-gradient(circle at 32% 28%, #332350, #170F28 78%);
-  border: 1px solid rgba(255, 110, 91, 0.38);
-  box-shadow: 0 0 0 3px rgba(255, 110, 91, 0.07), inset 0 0 14px rgba(255, 110, 91, 0.14);
-}
-.tcard-badge.lv-B {
-  border-color: rgba(150, 130, 200, 0.5);
-  color: #E4DBFF;
-  box-shadow: 0 0 0 3px rgba(108, 91, 155, 0.1), inset 0 0 14px rgba(108, 91, 155, 0.18);
-}
-.tcard-badge.lv-C {
-  border-color: rgba(244, 240, 230, 0.25);
-  color: #F4F0E6;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+  background: #F3EFFA;
+  color: #6C5B9B;
+  font: 700 13px/1 var(--din);
 }
 
 .tcard-body { flex: 1; min-width: 0; }
@@ -1182,61 +1155,53 @@ svg { display: block; }
   font-size: 14.5px;
   font-weight: 600;
   line-height: 1.35;
-  color: #F4F0E6;
+  color: #221A33;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.tcard-meta { margin-top: 4px; font-size: 11px; color: rgba(244, 240, 230, 0.52); }
-.tcard-meta.urgent { color: #FF9B8E; }
+.tcard-meta { margin-top: 3px; font-size: 11px; color: #8A8299; }
+.tcard-meta.urgent { color: #E5513F; }
 
 .tcard-right {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
+  align-items: center;
+  gap: 9px;
   flex: 0 0 auto;
 }
-.tcard-price { font: 600 15px/1 var(--din); color: #FFC9BE; }
+.tcard-price { font: 600 15px/1 var(--din); color: #221A33; }
 .tcard-btn {
-  padding: 7px 14px;
+  padding: 8px 16px;
   border-radius: 999px;
   border: 0;
-  background: linear-gradient(135deg, #FF7A66, #E5513F);
+  background: #FF6E5B;
   color: #FFFFFF;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
-  box-shadow: 0 8px 16px rgba(229, 81, 63, 0.38);
-  transition: transform 0.16s var(--spring);
+  letter-spacing: 0.2px;
+  transition: transform 0.16s var(--spring), background 0.2s ease;
 }
-.tcard-btn:active { transform: scale(0.94); }
+.tcard-btn:active { transform: scale(0.95); background: #E5513F; }
 .tcard-state {
-  padding: 4px 10px;
+  padding: 5px 11px;
   border-radius: 999px;
   font-size: 10.5px;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(244, 240, 230, 0.8);
+  background: #F3EFFA;
+  color: #6C5B9B;
 }
-.tcard-state.claimed { background: rgba(108, 91, 155, 0.28); color: #D9CEFF; }
-.tcard-state.submitted { background: rgba(255, 199, 102, 0.18); color: #FFD9A0; }
-.tcard-state.done { background: rgba(120, 200, 160, 0.16); color: #A8E6C4; }
+.tcard-state.submitted { background: #FFF3DC; color: #A97718; }
+.tcard-state.done { background: #EAF6EF; color: #3E8E63; }
 
 .tcard-alert {
   position: absolute;
-  left: 50px;
-  top: 9px;
-  width: 7px;
-  height: 7px;
+  left: 44px;
+  top: 44px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: #FF5A4E;
-  box-shadow: 0 0 0 3px rgba(255, 90, 78, 0.2);
-  animation: alertPulse 1.8s ease-in-out infinite;
-}
-@keyframes alertPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
+  background: #FF6E5B;
 }
 
 /* ---------------------------------------------------------------- 职位徽章 */

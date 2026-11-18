@@ -126,6 +126,9 @@ def main() -> int:
     ap.add_argument("--craft-max", type=int, default=0, choices=list(range(0, 11)),
                     help="录入/授权人才时：此人能做的最高制作水平（0–10）")
     ap.add_argument("--client", default="", help="客户名（成员在手机上给客户打分用）")
+    ap.add_argument("--role", default="", choices=["biz", "writer", "editor",
+                    "review", "aigc", "boss"],
+                    help="这单归谁做：商务/编剧/剪辑/审片/AIGC/老板")
     ap.add_argument("--repo", default="", help="owner/repo，给了就提交到 GitHub")
     ap.add_argument("--branch", default="main")
     ap.add_argument("--push", action="store_true", help="提交到 GitHub（需要 GH_TOKEN）")
@@ -266,6 +269,7 @@ def main() -> int:
         "secret": secret,
         "craft": int(args.craft),
         "client": (args.client or "").strip(),
+        "role": (args.role or "").strip(),
         "assignedTo": (args.assign_to or "").strip(),
         "status": "open",
         "claimedBy": "",

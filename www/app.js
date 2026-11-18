@@ -141,21 +141,31 @@
     var mine = S.isMine(t, state.cfg.wechat || state.cfg.name);
     var left = S.daysLeft(t.deadline);
     var urgent = left !== null && left <= 2;
-    var meta = [S.deadlineText(t.deadline)];
+    var meta = [S.codeOf(t), S.deadlineText(t.deadline)];
     var tags = (t.tags || []).slice(0, t.assignedTo ? 1 : 2);
     tags.forEach(function (g) { if (g) meta.push(g); });
     if (t.assignedTo) {
       meta.push('指定给 ' + (S.isMine(t, state.cfg.wechat || state.cfg.name) ? '你' : t.assignedTo));
     }
 
-    var statusText = S.STATUS[t.status]; t.status;
+    var ROLE_FILE = { biz: 'biz', writer: 'writer', editor: 'editor',
+                      review: 'review', aigc: 'aigc', boss: 'boss' };
+    var ROLE_TIP = { biz: '商务', writer: '编剧', editor: '剪辑',
+                     review: '审片', aigc: 'AIGC', boss: '老板' };
+    var roleKey = ROLE_FILE[String(t.role ? t.role : '')];
+    var badge = roleKey
+      ? '<img class="tcard-role" src="roles/' + roleKey + '.png" alt="' +
+        esc(ROLE_TIP[roleKey]) + '" title="' + esc(ROLE_TIP[roleKey]) + '">'
+      : '<span class="tcard-level" title="' + esc(S.codeOf(t)) + '">' + esc(t.secret) + '</span>';
+
+    var statusText = S.STATUS[t.status] ? S.STATUS[t.status] : t.status;
     var right = t.status === 'open'
       ? '<button class="tcard-btn" type="button" data-act="claim" data-id="' + esc(t.id) + '">抢单</button>'
       : '<span class="tcard-state ' + esc(t.status) + '">' + esc(statusText) + '</span>';
 
     return '' +
       '<article class="card tcard p' + (Number(t.priority) ? Number(t.priority) : 2) + '" data-act="detail" data-id="' + esc(t.id) + '" style="--i:' + i + '" role="button" tabindex="0">' +
-        '<span class="tcard-badge lv-' + esc(t.secret) + '" title="' + esc((S.LEVELS[t.secret] ? S.LEVELS[t.secret] : '') + ' · 制作水平 ' + t.craft + '/10') + '">' + esc(S.codeOf(t)) + '</span>' +
+        badge +
         '<div class="tcard-body">' +
           '<div class="tcard-title">' + esc(t.title) + '</div>' +
           '<div class="tcard-meta' + (urgent ? ' urgent' : '') + '">' + esc(meta.join(' · ')) + '</div>' +
