@@ -392,8 +392,11 @@
           '<p class="hint">' + esc(c.owner + '/' + c.repo + ' · ' + c.branch) + '</p>' +
           '<p class="hint">断网时只读本机缓存，不会出现假任务；换仓库由管理员重打包。</p>' +
         '</div>' +
-        fieldHTML('访问令牌', 'token', c.token, 'github_pat_…',
-          '接单、交付、评分需要写仓库时才用到；填一次存在本机，不会上传。', 'password') +
+        (c.token
+          ? '<div class="field"><div class="field-label">访问令牌</div>' +
+            '<p class="hint">已内置（管理员配置），接单、交付、评分直接可用，不用自己申请。</p></div>'
+          : fieldHTML('访问令牌', 'token', '', 'github_pat_…',
+              '本机没有内置令牌，需管理员提供一个 contents:write 的令牌。', 'password')) +
       '</div>' +
 
       '<div class="actions" style="margin:0 0 16px">' +
@@ -821,6 +824,9 @@
   }
 
   function boot() {
+    // 先取内置令牌，再接单：接单者不用自己申请 PAT
+    try { S.ensureBuiltinToken().then(function () { state.cfg = S.getConfig(); }); }
+    catch (e) { /* 没有内置令牌就等管理员填 */ }
     var splash = document.getElementById('splash');
     var appEl = document.getElementById('app');
     var done = false;

@@ -19,7 +19,8 @@
     usersPath: 'users.json',
     ratingsPath: 'ratings.json',
     contractsPath: 'contracts.json',
-    token: '',           // 接单/交付要写仓库时才需要，填一次存本机
+    token: '',           // 由构建时注入或管理员填写；接单者不用管
+    builtin_token: false,
     wechat: '',          // 登录身份由工号映射，接单归属仍按微信号算
     name: '',
     trusted: false,
@@ -108,6 +109,21 @@
 
   function gitReady(cfg) {
     return !!(cfg.owner && cfg.repo && cfg.path);
+  }
+
+  // 内置令牌：构建时写进 www/token.json，接单者不需要自己申请 PAT
+  function ensureBuiltinToken() {
+    var cfg = getConfig();
+    if (cfg.token) return Promise.resolve(cfg);
+    if (typeof fetch !== 'function') return Promise.resolve(cfg);
+    return fetch('token.json', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return cfg;
+        if (!d.token) return cfg;
+        return saveConfig({ token: String(d.token), builtin_token: true });
+      })
+      .catch(function () { return cfg; });
   }
 
   /* ------------------------------------------------------------ 用户 / 微信号
@@ -557,6 +573,7 @@
     getConfig: getConfig,
     saveConfig: saveConfig,
     gitReady: gitReady,
+    ensureBuiltinToken: ensureBuiltinToken,
     login: login,
     readUsers: readUsers,
     readRatings: readRatings,
