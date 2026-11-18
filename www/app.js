@@ -11,9 +11,7 @@
   var toastEl = document.getElementById('toast');
   var refreshBtn = document.getElementById('btnRefresh');
 
-  var APP_VERSION = '1.0.2';
-  var VERSION_URL = localStorage.getItem('trp_version_url') ||
-    'https://raw.githubusercontent.com/Toriesta/trplink/main/version.json';
+  var APP_VERSION = '1.0.3';
   var updateBar = document.getElementById('updateBar');
   var updateTitle = document.getElementById('updateTitle');
   var updateNotes = document.getElementById('updateNotes');
@@ -96,13 +94,50 @@
     updateBar.hidden = false;
   }
 
+  /* 版本文件有三个来源：国内直连 raw 常被重置，按 CDN → raw → API 依次尝试 */
+  function b64decode(s) {
+    var bin = atob(String(s || '').replace(/\s/g, ''));
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+
+  async function fetchVersionInfo() {
+    var cfg = S.getConfig();
+    var owner = cfg.owner || 'Toriesta';
+    var repo = cfg.repo || 'trplink';
+    var branch = cfg.branch || 'main';
+    var api = 'https://api.github.com/repos/' + owner + '/' + repo +
+      '/contents/version.json?ref=' + encodeURIComponent(branch);
+    var urls = [
+      'https://cdn.jsdelivr.net/gh/' + owner + '/' + repo + '@' + branch + '/version.json',
+      'https://raw.githubusercontent.com/' + owner + '/' + repo + '/' + branch + '/version.json',
+      api
+    ];
+    var errs = [];
+    for (var i = 0; i < urls.length; i++) {
+      var url = urls[i] + (urls[i].indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now();
+      try {
+        var headers = {};
+        if (url.indexOf('api.github.com') >= 0 && cfg.token) {
+          headers.Authorization = 'Bearer ' + cfg.token;
+        }
+        var res = await fetch(url, { cache: 'no-store', headers: headers });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var info = await res.json();
+        if (info && info.content) info = JSON.parse(b64decode(info.content));
+        if (info && info.version) return info;
+        throw new Error('版本文件格式不对');
+      } catch (e) {
+        errs.push((e && e.message) || '失败');
+      }
+    }
+    throw new Error('三个源都不可用（' + errs.join(' / ') + '）');
+  }
+
   async function checkUpdate(manual) {
     try {
-      var res = await fetch(VERSION_URL + (VERSION_URL.indexOf('?') >= 0 ? '&' : '?') +
-        't=' + Date.now(), { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      var info = await res.json();
-      if (!info || !info.version) throw new Error('版本文件格式不对');
+      var info = await fetchVersionInfo();
       if (cmpVer(info.version, APP_VERSION) <= 0) {
         state.update = null;
         hideUpdate();
