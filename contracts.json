@@ -1,0 +1,25 @@
+{
+  "updated": "2026-11-19T00:12:03",
+  "contracts": [
+    {
+      "code": "HT-20261119-01",
+      "title": "腾讯品牌短片第 2 批",
+      "client": "腾讯",
+      "amount": 15000.0,
+      "status": "settling",
+      "due": "",
+      "requirement": "",
+      "progress": 0,
+      "total": 10,
+      "current": "商务谈判与需求确认",
+      "current_status": "todo",
+      "waiting_me": false,
+      "settle": {
+        "client": 15000.0,
+        "vendor": 3300.0,
+        "client_done": true,
+        "vendor_done": false
+      }
+    }
+  ]
+}
