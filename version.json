@@ -1,6 +1,6 @@
 {
-  "version": "1.0.6",
+  "version": "1.0.7",
   "released": "2026-11-19",
-  "notes": "人才端移除合同入口；任务列表只显示指派给自己的和可自由抢单的任务；合同不再同步到仓库",
-  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.6/app-debug.apk"
+  "notes": "竖屏锁定；任务卡改为两端半圆的操场形，左侧使用角色图标，阅读和抢单更顺手",
+  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.7/app-debug.apk"
 }
