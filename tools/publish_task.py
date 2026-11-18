@@ -22,6 +22,23 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+TOKEN_FILE = ROOT / ".token.json"
+REPO_DEFAULT = "Toriesta/trplink"
+
+
+def load_token() -> str:
+    """令牌来源：环境变量 GH_TOKEN → mobile-app/.token.json。
+
+    这样电脑端发布任务可以自动上传，不需要每次手填或双击同步脚本。
+    """
+    env = os.environ.get("GH_TOKEN", "").strip()
+    if env:
+        return env
+    try:
+        data = json.loads(TOKEN_FILE.read_text(encoding="utf-8"))
+        return str(data.get("token") or "").strip()
+    except (OSError, ValueError):
+        return ""
 DESKTOP_DB = ROOT.parent / "data" / "trp_link.db"
 
 
@@ -129,9 +146,11 @@ def main() -> int:
     ap.add_argument("--role", default="", choices=["biz", "writer", "editor",
                     "review", "aigc", "boss"],
                     help="这单归谁做：商务/编剧/剪辑/审片/AIGC/老板")
-    ap.add_argument("--repo", default="", help="owner/repo，给了就提交到 GitHub")
+    ap.add_argument("--repo", default=REPO_DEFAULT,
+                    help="owner/repo，默认 Toriesta/trplink（发布即自动上传）")
     ap.add_argument("--branch", default="main")
-    ap.add_argument("--push", action="store_true", help="提交到 GitHub（需要 GH_TOKEN）")
+    ap.add_argument("--push", action="store_true", help="（兼容保留）提交到 GitHub")
+    ap.add_argument("--no-push", action="store_true", help="只写本地，不上传 GitHub")
     args = ap.parse_args()
 
     cfg = load_json(CONFIG, {"adminWechat": "", "users": []})
@@ -188,10 +207,10 @@ def main() -> int:
         users_data["updated"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
         save_json(USERS, users_data)
         print(f"已录入人才库：{hit['name']}（{wx}），手机端用 4 位工号 {hit.get('code')} 登录")
-        if args.push:
-            token = os.environ.get("GH_TOKEN", "").strip()
-            if not token or not args.repo:
-                print("推送需要 GH_TOKEN 和 --repo，已只写本地文件", file=sys.stderr)
+        if not args.no_push:
+            token = load_token()
+            if not token:
+                print("没有可用令牌（GH_TOKEN 或 .token.json），已只写本地文件", file=sys.stderr)
                 return 1
             push_github(args.repo, token, users_data, args.branch, "users.json",
                         f"add worker {wx}")
@@ -223,10 +242,10 @@ def main() -> int:
         users_data["updated"] = dt.datetime.now().astimezone().isoformat(timespec="seconds")
         save_json(USERS, users_data)
         print(f"{wx} " + ("已升为可信成员（可见并接 B 级）" if flag else "已取消可信（只接 C 级）"))
-        if args.push:
-            token = os.environ.get("GH_TOKEN", "").strip()
-            if not token or not args.repo:
-                print("推送需要 GH_TOKEN 和 --repo，已只写本地文件", file=sys.stderr)
+        if not args.no_push:
+            token = load_token()
+            if not token:
+                print("没有可用令牌（GH_TOKEN 或 .token.json），已只写本地文件", file=sys.stderr)
                 return 1
             push_github(args.repo, token, users_data, args.branch, "users.json",
                         f"trust {wx}={flag}")
@@ -323,13 +342,10 @@ def main() -> int:
     if secret == "A":
         print(f"  已写入 {PRIVATE.name}，只在本机，不会同步到 GitHub")
 
-    if args.push:
-        token = os.environ.get("GH_TOKEN", "").strip()
+    if not args.no_push:
+        token = load_token()
         if not token:
-            print("缺少 GH_TOKEN 环境变量，已只写本地文件", file=sys.stderr)
-            return 1
-        if not args.repo:
-            print("--push 需要同时给 --repo owner/name", file=sys.stderr)
+            print("没有可用令牌（GH_TOKEN 或 .token.json），已只写本地文件", file=sys.stderr)
             return 1
         push_github(args.repo, token, tasks_data, args.branch, "tasks.json",
                     f"publish {task['id']}: {task['title'][:36]}")
