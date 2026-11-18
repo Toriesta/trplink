@@ -207,6 +207,7 @@
 
     return '' +
       '<article class="card tcard p' + (Number(t.priority) ? Number(t.priority) : 2) + '" data-act="detail" data-id="' + esc(t.id) + '" style="--i:' + i + '" role="button" tabindex="0">' +
+        '<span class="tcard-no">' + esc(t.id) + '</span>' +
         badge +
         '<div class="tcard-body">' +
           '<div class="tcard-title">' + esc(t.title) + '</div>' +
@@ -240,6 +241,10 @@
   function renderTasks() {
     var st = S.stats(state.tasks, state.cfg.name);
     var list = filtered();
+    var dueToday = list.filter(function (x) {
+      var l = S.daysLeft(x.deadline);
+      return l === 0 && x.status !== 'done';
+    }).length;
     var chips = [
       ['all', '全部 ' + state.tasks.length],
       ['open', '可接 ' + st.open],
@@ -269,6 +274,12 @@
         (state.source === 'github' ? (state.offline ? ' · 离线缓存' : ' · 已连仓库') : ' · 读取中') +
         (state.offline ? ' · 离线缓存' : '') + '</p>' +
       '</section>' +
+      '<p class="hero-tiny">' +
+        esc('共 ' + state.tasks.length + ' 单 ・ 待接 ' + st.open +
+            (st.doing ? ' ・ 进行中 ' + st.doing : '') +
+            (dueToday ? ' ・ 今天到期 ' + dueToday : '') +
+            (state.updated ? ' ・ 更新于 ' + String(state.updated).replace('T', ' ').slice(5, 16) : '')) +
+      '</p>' +
       '<div class="chips">' + chips.map(function (c) {
         return '<button class="chip' + (state.filter === c[0] ? ' is-on' : '') +
           '" type="button" data-act="filter" data-filter="' + c[0] + '">' + esc(c[1]) + '</button>';
@@ -591,6 +602,11 @@
           '<div class="field" style="padding-top:0;border:0">' +
           '<textarea id="deliveryNote" placeholder="一句话说明交付内容或链接，例：已上传网盘，见群公告">' +
           esc(t.deliveryNote || '') + '</textarea></div>' : '') +
+      '<p class="sheet-tiny">' + (t.status === 'open'
+        ? '接单后可在「我的任务」提交交付说明；截止前未交付会进决策台。'
+        : t.status === 'claimed'
+          ? '交付时写一句说明或链接，商务和老板验收后自动结款。'
+          : '验收通过后自动给乙方结款，并确认甲方应收。') + '</p>' +
       '<div class="actions">' + actions + '</div>';
 
     sheet.hidden = false;
