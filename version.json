@@ -1,6 +1,6 @@
 {
-  "version": "1.0.7",
+  "version": "1.0.8",
   "released": "2026-11-19",
-  "notes": "竖屏锁定；任务卡改为两端半圆的操场形，左侧使用角色图标，阅读和抢单更顺手",
-  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.7/app-debug.apk"
+  "notes": "移除全部渐变与光晕，界面改为纯色平面；新增编程 / 组织 / 网络 / 宣传岗位图标",
+  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.8/app-debug.apk"
 }
