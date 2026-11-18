@@ -1,6 +1,6 @@
 {
-  "version": "1.0.5",
+  "version": "1.0.6",
   "released": "2026-11-19",
-  "notes": "发现新版本自动弹窗提示；访问令牌随 App 内置锁定，界面不显示也不允许修改",
-  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.5/app-debug.apk"
+  "notes": "人才端移除合同入口；任务列表只显示指派给自己的和可自由抢单的任务；合同不再同步到仓库",
+  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.6/app-debug.apk"
 }
