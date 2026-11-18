@@ -196,7 +196,7 @@
                      review: '审片', aigc: 'AIGC', boss: '老板' };
     var roleKey = ROLE_FILE[String(t.role ? t.role : '')];
     var badge = roleKey
-      ? '<img class="tcard-role" src="roles/' + roleKey + '.png" alt="' +
+      ? '<img class="tcard-role" src="roles/' + roleKey + '_sm.png" alt="' +
         esc(ROLE_TIP[roleKey]) + '" title="' + esc(ROLE_TIP[roleKey]) + '">'
       : '<span class="tcard-level" title="' + esc(S.codeOf(t)) + '">' + esc(t.secret) + '</span>';
 
@@ -371,7 +371,7 @@
                     aigc: 'AIGC 制作', review: '审片', boss: '老板', toli: '执行代理' };
     var role = state.cfg.job_role || '';
     var roleHTML = role
-      ? '<img class="role-badge" src="roles/' + esc(role) + '.png" alt="' +
+      ? '<img class="role-badge" src="roles/' + esc(role) + '_sm.png" alt="' +
         esc(ROLE_CN[role] || role) + '">'
       : '';
 
