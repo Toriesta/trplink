@@ -533,6 +533,12 @@
 
     var mine = S.isMine(t, state.cfg.wechat || state.cfg.name);
     var left = S.daysLeft(t.deadline);
+    var ROLE_SM = { biz: 'biz', writer: 'writer', editor: 'editor',
+                    review: 'review', aigc: 'aigc', boss: 'boss' };
+    var rKey = ROLE_SM[String(t.role ? t.role : '')];
+    var roleImg = rKey
+      ? '<img class="sheet-role" src="roles/' + rKey + '_sm.png" alt="">'
+      : '';
     var actions = '';
 
     if (t.status === 'open') {
@@ -556,8 +562,9 @@
 
     sheetBody.innerHTML = '' +
       '<div class="row">' +
+        roleImg +
         '<span class="badge ' + esc(t.status) + '">' + esc(S.STATUS[t.status] || t.status) + '</span>' +
-        '<span class="lv lv-' + esc(t.secret) + '">' + esc(S.codeOf(t)) + '</span>' +
+        '<span class="sheet-code">' + esc(S.codeOf(t)) + '</span>' +
         '<span class="meta">' + esc(S.LEVELS[t.secret] || '') + ' · 制作水平 ' +
           esc(t.craft) + '/10（' + esc(S.craftLabel(t.craft)) + '）</span>' +
         '<span class="meta">' + esc(t.id) + '</span>' +
