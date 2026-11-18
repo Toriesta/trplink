@@ -576,9 +576,9 @@ svg { display: block; }
   border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
-  background: linear-gradient(180deg, #FF8170, var(--coral));
-  color: #24100C;
-  box-shadow: 0 5px 14px -6px rgba(255, 110, 91, 0.75), var(--hl);
+  background: var(--coral);
+  color: #FFFFFF;
+  box-shadow: 0 5px 14px -6px rgba(255, 110, 91, 0.6);
   overflow: hidden;
   transition: transform 0.16s var(--spring), box-shadow 0.24s ease, opacity 0.2s ease;
 }
@@ -590,9 +590,9 @@ svg { display: block; }
   box-shadow: var(--hl);
 }
 .btn.ink {
-  background: linear-gradient(180deg, #2A1B4E, #120B21);
+  background: #2A1B4E;
   color: var(--ivory);
-  box-shadow: 0 8px 20px -10px rgba(18, 11, 33, 0.9), var(--hl);
+  box-shadow: 0 8px 20px -10px rgba(18, 11, 33, 0.7);
 }
 .btn.block { width: 100%; height: 46px; border-radius: 14px; font-size: 15px; }
 .btn[disabled] { opacity: 0.45; pointer-events: none; }
