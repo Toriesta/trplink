@@ -18,6 +18,7 @@
     path: 'tasks.json',
     usersPath: 'users.json',
     ratingsPath: 'ratings.json',
+    contractsPath: 'contracts.json',
     token: '',           // 接单/交付要写仓库时才需要，填一次存本机
     wechat: '',          // 登录身份由工号映射，接单归属仍按微信号算
     name: '',
@@ -400,6 +401,30 @@
     };
   }
 
+  /* ------------------------------------------------------------ 合同进度（只读）
+   * 由桌面端导出 contracts.json 后同步到仓库；手机端只读，不提供改状态入口。
+   */
+  var CONTRACTS_KEY = 'trp_contracts_v1';
+
+  function localContracts() {
+    return readJSON(CONTRACTS_KEY, { contracts: [] });
+  }
+
+  async function readContracts() {
+    var cfg = getConfig();
+    try {
+      var got = await githubRead(cfg, cfg.contractsPath || 'contracts.json');
+      var data = got.data || { contracts: [] };
+      if (!Array.isArray(data.contracts)) data.contracts = [];
+      writeJSON(CONTRACTS_KEY, data);
+      return { data: data, source: 'github', error: '' };
+    } catch (e) {
+      var msg = (e && e.message) || '';
+      if (/404|还没有/.test(msg)) msg = '';   // 首次尚未导出，按空列表处理
+      return { data: localContracts(), source: 'cache', error: msg };
+    }
+  }
+
   function find(tasks, id) {
     for (var i = 0; i < tasks.length; i++) if (tasks[i].id === id) return tasks[i];
     return null;
@@ -535,6 +560,7 @@
     login: login,
     readUsers: readUsers,
     readRatings: readRatings,
+    readContracts: readContracts,
     rateClient: rateClient,
     clientStats: clientStats,
     load: load,

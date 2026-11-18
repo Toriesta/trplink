@@ -11,7 +11,7 @@
   var toastEl = document.getElementById('toast');
   var refreshBtn = document.getElementById('btnRefresh');
 
-  var APP_VERSION = '1.0.1';
+  var APP_VERSION = '1.0.2';
   var VERSION_URL = localStorage.getItem('trp_version_url') ||
     'https://raw.githubusercontent.com/Toriesta/trplink/main/version.json';
   var updateBar = document.getElementById('updateBar');
@@ -26,7 +26,11 @@
     filter: 'all',          // all | open | mine
     tasks: [],
     update: null,           // 远端 version.json 里比本机新的版本
-    updated: '',
+    contracts: [],          // 桌面端导出的合同进度（只读）
+    contractsUpdated: '',
+    contractsError: '',
+    contractsLoaded: false,
+    contractsLoading: false,    updated: '',
     source: 'local',
     offline: false,
     error: '',
@@ -233,6 +237,87 @@
       (state.error ? '<p class="hint" style="margin-top:14px">⚠️ ' + esc(state.error) + '</p>' : '');
   }
 
+  var C_STATUS = { active: '在办', settling: '待结算', done: '已结项' };
+
+  function contractHTML(c) {
+    var total = Number(c.total) || 0;
+    var done = Number(c.progress) || 0;
+    var pct = total ? Math.max(0, Math.min(100, Math.round(done / total * 100))) : 0;
+    var due = String(c.due || '').slice(5);
+    var late = c.status === 'active' && c.due && c.due < S.todayISO();
+    var money = '¥' + S.money(c.amount);
+    var settle = '';
+    if (c.settle && (c.settle.client || c.settle.vendor)) {
+      settle = '<div class="c-settle">' +
+        (c.settle.client_done ? '已收 ' + money : '应收 ' + money) +
+        ' · ' +
+        (c.settle.vendor_done ? '已付 ¥' + S.money(c.settle.vendor)
+          : '应付 ¥' + S.money(c.settle.vendor)) +
+        '</div>';
+    }
+    return '<article class="contract-card' + (c.waiting_me ? ' is-waiting' : '') + '">' +
+      '<div class="c-top">' +
+        '<span class="c-code">' + esc(c.code || '') + '</span>' +
+        '<span class="badge ' + (c.status === 'done' ? 'done' : 'muted') + '">' +
+          esc(C_STATUS[c.status] || '在办') + '</span>' +
+        (c.waiting_me ? '<span class="badge claimed">待你验收</span>' : '') +
+      '</div>' +
+      '<h3 class="c-title">' + esc(c.title || '') + '</h3>' +
+      '<p class="c-meta">' + esc(c.client || '未写甲方') + ' · ' + money +
+        (due ? ' · 交付 ' + esc(due) + (late ? '（已逾期）' : '') : '') + '</p>' +
+      '<div class="c-bar"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="c-foot">' +
+        '<span>' + (c.current ? '当前：' + esc(c.current) : '已全部完成') + '</span>' +
+        '<span>' + done + '/' + total + '</span>' +
+      '</div>' +
+      (c.waiting_me ? '<div class="c-wait">等你验收：' + esc(c.current || '') + '</div>' : '') +
+      settle +
+    '</article>';
+  }
+
+  function renderContracts() {
+    var cs = state.contracts || [];
+    var active = cs.filter(function (c) { return c.status === 'active'; }).length;
+    var wait = cs.filter(function (c) { return c.waiting_me; }).length;
+
+    var body;
+    if (state.contractsLoading && !cs.length) {
+      body = skeletonHTML();
+    } else if (!cs.length) {
+      body = emptyHTML('还没有合同',
+        '在电脑上建单后点「同步手机」，合同进度会出现在这里');
+    } else {
+      body = '<div class="list">' + cs.map(contractHTML).join('') + '</div>';
+    }
+
+    view.innerHTML = '' +
+      '<section class="hero">' +
+        '<div class="hero-row"><h1>合同</h1>' +
+          (wait ? '<span class="count-pill">' + wait + ' 单待验收</span>' : '') + '</div>' +
+        '<p>' + (cs.length ? active + ' 单在办 · ' + cs.length + ' 单记录' : '只读进度') +
+          (state.contractsUpdated ? ' · 更新于 ' +
+            esc(String(state.contractsUpdated).replace('T', ' ').slice(5, 16)) : '') + '</p>' +
+      '</section>' +
+      body +
+      (state.contractsError
+        ? '<p class="hint" style="margin-top:14px">⚠️ ' + esc(state.contractsError) + '</p>'
+        : '');
+  }
+
+  async function loadContracts() {
+    state.contractsLoading = true;
+    try {
+      var got = await S.readContracts();
+      state.contracts = (got.data && got.data.contracts) || [];
+      state.contractsUpdated = (got.data && got.data.updated) || '';
+      state.contractsError = got.error || '';
+    } catch (e) {
+      state.contractsError = (e && e.message) || '合同读取失败';
+    }
+    state.contractsLoaded = true;
+    state.contractsLoading = false;
+  }
+
   function renderMine() {
     var st = S.stats(state.tasks, state.cfg.name);
     var mine = sortTasks(state.tasks.filter(function (t) { return S.isMine(t, state.cfg.wechat || state.cfg.name); }));
@@ -350,6 +435,7 @@
 
   function render() {
     if (state.tab === 'tasks') renderTasks();
+    else if (state.tab === 'contracts') renderContracts();
     else if (state.tab === 'mine') renderMine();
     else renderSettings();
 
@@ -538,8 +624,10 @@
     await load(true);
     // 人才库和任务池是两个文件：只刷任务会导致刚加的人「刷新了也登不了」
     try { await S.readUsers(); } catch (e) { /* 离线时沿用缓存 */ }
+    await loadContracts();
     refreshBtn.classList.remove('is-spinning');
-    if (!state.error) toast('已同步任务与人才库');
+    if (!state.error) toast('已同步任务、人才库与合同');
+    if (state.tab === 'contracts') render();
   }
 
   /* ------------------------------------------------------------ 事件 */
@@ -645,6 +733,12 @@
     var b = ev.target.closest ? ev.target.closest('.tab') : null;
     if (!b) return;
     state.tab = b.getAttribute('data-tab');
+    if (state.tab === 'contracts' && !state.contractsLoaded) {
+      state.contractsLoading = true;
+      render();
+      loadContracts().then(render);
+      return;
+    }
     render();
   });
 

@@ -27,7 +27,7 @@ SHARED_DIRS = ("www", "tools", "docs", "android", ".github")
 SHARED_FILES = (
     "tasks.json", "users.json", "config.json", "ratings.json", "README.md",
     "package.json", "package-lock.json", "capacitor.config.json", ".gitignore",
-    "version.json", "同步到GitHub.bat",
+    "version.json", "contracts.json", "同步到GitHub.bat",
 )
 TEXT_SUFFIX = {".js", ".json", ".py", ".bat", ".cmd", ".md", ".css", ".html",
                ".xml", ".gradle", ".yml", ".yaml", ".txt", ".java", ".kt", ".properties"}

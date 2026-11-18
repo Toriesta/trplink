@@ -1056,3 +1056,69 @@ svg { display: block; }
   line-height: 1;
 }
 
+/* 合同卡片：只读进度，待验收用珊瑚描边直接顶到眼前 */
+.contract-card {
+  padding: 14px 15px 13px;
+  margin-bottom: 10px;
+  border-radius: 18px;
+  border: 1px solid var(--line-soft);
+  background: var(--paper);
+  box-shadow: var(--sh-1);
+}
+.contract-card.is-waiting {
+  border-color: rgba(255, 110, 91, 0.42);
+  box-shadow: 0 0 0 3px rgba(255, 110, 91, 0.08), var(--sh-1);
+}
+.c-top { display: flex; align-items: center; gap: 6px; }
+.c-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  color: var(--muted-2);
+  flex: 1;
+}
+.c-title {
+  margin: 6px 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+}
+.c-meta { margin: 0 0 10px; font-size: 11.5px; color: var(--muted); }
+.c-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--ivory-deep);
+  overflow: hidden;
+}
+.c-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--violet), var(--coral));
+  transition: width 0.55s var(--spring);
+}
+.c-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 7px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.c-wait {
+  margin-top: 9px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: var(--coral-wash);
+  color: var(--coral-deep);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.c-settle {
+  margin-top: 7px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+
