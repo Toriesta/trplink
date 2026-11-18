@@ -3,8 +3,7 @@
    质感来自三层：极淡噪点、柔光、卡片内高光 + 双层阴影；动效只动 transform / opacity。 */
 
 :root {
-  --ivory: #F4F0E6;
-  --ivory-deep: #EAE4D5;
+  --ivory: #F4F0E6;  --ivory-deep: #EAE4D5;
   --paper: #FFFDF8;
   --paper-2: #FFFEFB;
   --ink: #120B21;
@@ -1000,3 +999,60 @@ svg { display: block; }
   .splash { display: none; }
   .app { opacity: 1; transform: none; }
 }
+
+/* 新版本提示条：深紫底 + 珊瑚更新键，不遮挡顶部刷新 */
+.update-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 16px 0;
+  padding: 11px 12px;
+  border-radius: 16px;
+  background: var(--ink);
+  color: var(--ivory);
+  box-shadow: var(--sh-2);
+  animation: updateIn 0.32s var(--spring);
+}
+.update-bar[hidden] { display: none; }
+@keyframes updateIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+.update-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.update-copy b { font-size: 13.5px; letter-spacing: 0.02em; }
+.update-copy span {
+  font-size: 11.5px;
+  color: var(--muted-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.update-go {
+  flex: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--coral);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.update-go:active { background: var(--coral-deep); }
+.update-x {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--ivory);
+  font-size: 16px;
+  line-height: 1;
+}
+

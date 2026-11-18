@@ -1,0 +1,6 @@
+{
+  "version": "1.0.1",
+  "released": "2026-11-18",
+  "notes": "新增：启动自动检查新版本，设置页可手动检查并一键更新",
+  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.1/app-debug.apk"
+}

@@ -11,11 +11,21 @@
   var toastEl = document.getElementById('toast');
   var refreshBtn = document.getElementById('btnRefresh');
 
+  var APP_VERSION = '1.0.1';
+  var VERSION_URL = localStorage.getItem('trp_version_url') ||
+    'https://raw.githubusercontent.com/Toriesta/trplink/main/version.json';
+  var updateBar = document.getElementById('updateBar');
+  var updateTitle = document.getElementById('updateTitle');
+  var updateNotes = document.getElementById('updateNotes');
+  var updateLink = document.getElementById('updateLink');
+  var updateLater = document.getElementById('updateLater');
+
   var state = {
     tab: 'tasks',
     rate: null,             // 当前正在打分的任务 {id, stars, tags}
     filter: 'all',          // all | open | mine
     tasks: [],
+    update: null,           // 远端 version.json 里比本机新的版本
     updated: '',
     source: 'local',
     offline: false,
@@ -55,6 +65,53 @@
     toastEl.classList.add('is-on');
     clearTimeout(toast._t);
     toast._t = setTimeout(function () { toastEl.classList.remove('is-on'); }, 2300);
+  }
+
+  /* 版本比较：1.0.10 > 1.0.9，非数字段按 0 处理 */
+  function cmpVer(a, b) {
+    var pa = String(a || '').replace(/^v/i, '').split('.');
+    var pb = String(b || '').replace(/^v/i, '').split('.');
+    for (var i = 0; i < Math.max(pa.length, pb.length); i++) {
+      var x = parseInt(pa[i], 10) || 0;
+      var y = parseInt(pb[i], 10) || 0;
+      if (x !== y) return x > y ? 1 : -1;
+    }
+    return 0;
+  }
+
+  function hideUpdate() {
+    if (updateBar) updateBar.hidden = true;
+  }
+
+  function showUpdate(info) {
+    if (!updateBar) return;
+    updateTitle.textContent = '发现新版本 v' + info.version;
+    updateNotes.textContent = info.notes || '修复问题并优化体验';
+    updateLink.href = info.apk ||
+      'https://github.com/Toriesta/trplink/releases/latest';
+    updateBar.hidden = false;
+  }
+
+  async function checkUpdate(manual) {
+    try {
+      var res = await fetch(VERSION_URL + (VERSION_URL.indexOf('?') >= 0 ? '&' : '?') +
+        't=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var info = await res.json();
+      if (!info || !info.version) throw new Error('版本文件格式不对');
+      if (cmpVer(info.version, APP_VERSION) <= 0) {
+        state.update = null;
+        hideUpdate();
+        if (manual) toast('已是最新版本 v' + APP_VERSION);
+      } else {
+        state.update = info;
+        showUpdate(info);
+        if (manual) toast('发现新版本 v' + info.version);
+      }
+    } catch (e) {
+      if (manual) toast('检查更新失败：' + ((e && e.message) || '网络问题'));
+    }
+    if (state.tab === 'settings') render();
   }
 
   function sortTasks(list) {
@@ -258,6 +315,23 @@
         '<button class="btn ink block" type="button" data-act="save">保存令牌</button>' +
       '</div>' +
 
+      '<div class="section-title">版本</div>' +
+      '<div class="panel"><div class="field">' +
+        '<div class="field-label">当前 v' + APP_VERSION +
+          (state.update ? ' · 可更新到 v' + esc(state.update.version) : '') + '</div>' +
+        '<p class="hint">' + (state.update
+          ? '新版本已就绪：' + esc(state.update.notes || '修复问题并优化体验')
+          : '启动时自动检查新版本；也可以点下面手动检查。') + '</p>' +
+        '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' +
+          '<button class="btn ghost" type="button" data-act="checkUpdate">检查更新</button>' +
+          (state.update
+            ? '<a class="btn" target="_blank" rel="noopener" href="' +
+              esc(state.update.apk || 'https://github.com/Toriesta/trplink/releases/latest') +
+              '">立即更新</a>'
+            : '') +
+        '</div>' +
+      '</div></div>' +
+
       '<div class="section-title">发布任务</div>' +
       '<div class="panel"><div class="field">' +
         '<p class="hint">任务写在仓库的 <code>tasks.json</code> 里。用 <code>python tools/publish_task.py</code> ' +
@@ -267,7 +341,7 @@
       '</div></div>' +
 
       '<div class="about">' +
-        '<b>TRP 任务台</b> · v1.0.0 · 天枢架构内部工具<br>' +
+        '<b>TRP 任务台</b> · v' + APP_VERSION + ' · 天枢架构内部工具<br>' +
         '仓库：' + esc(c.owner + '/' + c.repo) + '（随 App 固定）' +
         (state.updated ? '<br>任务更新时间：' + esc(String(state.updated).replace('T', ' ').slice(0, 16)) : '') +
         '<br>象牙白 / 深紫 / 珊瑚 · 与 TRP Link 同一套色板' +
@@ -555,6 +629,7 @@
     if (act === 'detail') { openSheet(id); return; }
     if (act === 'close') { closeSheet(); return; }
     if (act === 'filter') { state.filter = el.getAttribute('data-filter'); render(); return; }
+    if (act === 'checkUpdate') { checkUpdate(true); return; }
 
     if (act === 'save') {
       // 只允许改令牌；仓库、身份都由管理员与 App 决定
@@ -578,6 +653,7 @@
   });
 
   refreshBtn.addEventListener('click', doRefresh);
+  if (updateLater) updateLater.addEventListener('click', hideUpdate);
 
   document.addEventListener('keydown', function (ev) {
     if (ev.key === 'Escape' && !sheet.hidden) closeSheet();
@@ -664,6 +740,7 @@
       if (appEl) appEl.classList.add('is-ready');
       setTimeout(moveTabIndicator, 80);
       setTimeout(function () { animateNumbers(view); }, 460);
+      setTimeout(function () { checkUpdate(false); }, 1400);
     }
     if (!splash || reduceMotion) { finish(); return; }
     splash.addEventListener('click', finish);
