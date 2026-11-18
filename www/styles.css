@@ -974,160 +974,121 @@ svg { display: block; }
   .app { opacity: 1; transform: none; }
 }
 
-/* 新版本提示条：深紫底 + 珊瑚更新键，不遮挡顶部刷新 */
-.update-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 10px 16px 0;
-  padding: 11px 12px;
-  border-radius: 16px;
+/* 新版本弹窗：发现新版本自动弹出，深紫卡 + 珊瑚更新键 */
+.update-modal { position: fixed; inset: 0; z-index: 70; }
+.update-modal[hidden] { display: none; }
+.update-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 11, 33, 0.52);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: updateFade 0.2s ease-out;
+}
+.update-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(340px, calc(100vw - 48px));
+  padding: 22px 22px 18px;
+  border-radius: 24px;
   background: var(--ink);
   color: var(--ivory);
-  box-shadow: var(--sh-2);
-  animation: updateIn 0.32s var(--spring);
-}
-.update-bar[hidden] { display: none; }
-@keyframes updateIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: none; }
-}
-.update-copy {
-  flex: 1;
-  min-width: 0;
+  box-shadow: 0 24px 60px -18px rgba(18, 11, 33, 0.7);
+  transform: translate(-50%, -50%);
+  animation: updatePop 0.34s var(--spring);
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-.update-copy b { font-size: 13.5px; letter-spacing: 0.02em; }
-.update-copy span {
-  font-size: 11.5px;
-  color: var(--muted-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.update-go {
-  flex: none;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: var(--coral);
-  color: #fff;
-  font-size: 12.5px;
-  font-weight: 700;
-  text-decoration: none;
-}
-.update-go:active { background: var(--coral-deep); }
-.update-x {
-  flex: none;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--ivory);
-  font-size: 16px;
-  line-height: 1;
-}
-
-/* 合同卡片：只读进度，待验收用珊瑚描边直接顶到眼前 */
-.contract-card {
-  padding: 14px 15px 13px;
-  margin-bottom: 10px;
-  border-radius: 18px;
-  border: 1px solid var(--line-soft);
-  background: var(--paper);
-  box-shadow: var(--sh-1);
-}
-.contract-card.is-waiting {
-  border-color: rgba(255, 110, 91, 0.42);
-  box-shadow: 0 0 0 3px rgba(255, 110, 91, 0.08), var(--sh-1);
-}
-.c-top { display: flex; align-items: center; gap: 6px; }
-.c-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.03em;
-  color: var(--muted-2);
-  flex: 1;
-}
-.c-title {
-  margin: 6px 0 4px;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--ink);
-  line-height: 1.35;
-}
-.c-meta { margin: 0 0 10px; font-size: 11.5px; color: var(--muted); }
-.c-bar {
-  height: 5px;
-  border-radius: 999px;
-  background: var(--ivory-deep);
-  overflow: hidden;
-}
-.c-bar i {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--violet), var(--coral));
-  transition: width 0.55s var(--spring);
-}
-.c-foot {
-  display: flex;
-  justify-content: space-between;
   gap: 10px;
-  margin-top: 7px;
-  font-size: 11px;
-  color: var(--muted);
 }
-.c-wait {
-  margin-top: 9px;
-  padding: 7px 10px;
-  border-radius: 10px;
-  background: var(--coral-wash);
-  color: var(--coral-deep);
-  font-size: 11.5px;
-  font-weight: 600;
+.update-tag {
+  align-self: flex-start;
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  color: var(--coral);
+  font-weight: 700;
 }
-.c-settle {
-  margin-top: 7px;
+.update-mark { color: var(--coral); width: 46px; height: 46px; }
+.update-mark svg { width: 100%; height: 100%; display: block; }
+.update-card h2 { font-size: 20px; letter-spacing: 0.01em; margin: 0; }
+.update-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--muted-2);
+}
+.update-ver {
   font-size: 11px;
-  color: var(--ink-3);
+  color: var(--muted-2);
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.update-card .btn { margin-top: 2px; }
+.update-card .btn.ink { background: var(--coral); color: #FFFFFF; }
+.update-card .btn.ghost {
+  color: var(--ivory);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: none;
+}
+@keyframes updateFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes updatePop {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
-/* ---------------------------------------------------------------- 深色胶囊任务卡 */
+/* ------------------------------------------------ 深色操场形任务卡（两端半圆） */
 .card.tcard {
   display: flex;
   align-items: center;
-  gap: 13px;
-  padding: 15px 16px;
-  border-radius: 24px;
-  background: #2A2350;
-  border: 1px solid rgba(255, 255, 255, 0.085);
-  box-shadow: 0 12px 26px rgba(16, 8, 32, 0.22);
+  gap: 12px;
+  min-height: 76px;
+  padding: 10px 13px 10px 10px;
+  border-radius: 999px;
+  background:
+    radial-gradient(130% 180% at 0% 0%, rgba(255, 255, 255, 0.11), transparent 46%),
+    linear-gradient(180deg, #342C60 0%, #292149 56%, #231C40 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 14px 30px -16px rgba(12, 6, 26, 0.62),
+              inset 0 1px 0 rgba(255, 255, 255, 0.07);
   color: #F4F0E6;
   overflow: visible;
 }
 .card.tcard::before,
 .card.tcard::after { display: none; }
 
-.tcard-role {
-  width: 44px;
-  height: 44px;
+.tcard-avatar {
+  position: relative;
   flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+}
+.tcard-role {
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16);
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18),
+              0 8px 18px -8px rgba(0, 0, 0, 0.6);
 }
 .tcard-level {
-  width: 40px;
-  height: 40px;
-  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  background: radial-gradient(circle at 30% 24%,
+              rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: #F4F0E6;
-  font: 700 13px/1 var(--din);
+  font: 700 12.5px/1 var(--din);
+  letter-spacing: 0.04em;
 }
 
 .tcard-body {
@@ -1136,33 +1097,40 @@ svg { display: block; }
   position: relative;
   z-index: 1;
 }
-.tcard-right { position: relative; z-index: 1; }
-.tcard-role, .tcard-level { position: relative; z-index: 1; }
 .tcard-title {
-  font-size: 14.5px;
-  font-weight: 600;
-  line-height: 1.35;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.32;
   color: #F4F0E6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.tcard-meta { margin-top: 3px; font-size: 11px; color: rgba(244, 240, 230, 0.6); }
+.tcard-meta {
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: rgba(244, 240, 230, 0.62);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .tcard-meta.urgent { color: #FF9B8C; }
 
 .tcard-right {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
 }
 .tcard-price { font: 600 15px/1 var(--din); color: #F4F0E6; }
 .tcard-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 9px 15px;
+  gap: 4px;
+  padding: 9px 14px;
   border-radius: 999px;
   border: 0;
   background: #FF6E5B;
@@ -1170,7 +1138,7 @@ svg { display: block; }
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.2px;
-  box-shadow: none;
+  box-shadow: 0 6px 14px -8px rgba(255, 110, 91, 0.9);
   transition: transform 0.16s var(--spring), background 0.2s ease;
 }
 .tcard-btn:active { transform: scale(0.95); background: #E5513F; }
@@ -1193,13 +1161,13 @@ svg { display: block; }
 
 .tcard-alert {
   position: absolute;
-  left: 50px;
-  top: 11px;
-  width: 7px;
-  height: 7px;
+  right: 1px;
+  top: 1px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #FF5F4E;
-  box-shadow: 0 0 0 3px rgba(255, 95, 78, 0.18);
+  box-shadow: 0 0 0 3px rgba(255, 95, 78, 0.2);
   z-index: 2;
 }
 
@@ -1209,18 +1177,6 @@ svg { display: block; }
   font-size: 10px;
   letter-spacing: 0.2px;
   color: rgba(18, 11, 33, 0.4);
-}
-.tcard-no {
-  position: absolute;
-  right: 14px;
-  top: 10px;
-  padding: 2px 6px;
-  border: 1px solid rgba(244, 240, 230, 0.13);
-  border-radius: 4px;
-  font: 500 8.5px/1 var(--din);
-  letter-spacing: 0.8px;
-  color: rgba(244, 240, 230, 0.38);
-  pointer-events: none;
 }
 .sheet-tiny {
   margin: 16px 0 0;

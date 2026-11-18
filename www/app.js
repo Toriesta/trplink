@@ -11,12 +11,14 @@
   var toastEl = document.getElementById('toast');
   var refreshBtn = document.getElementById('btnRefresh');
 
-  var APP_VERSION = '1.0.4';
-  var updateBar = document.getElementById('updateBar');
-  var updateTitle = document.getElementById('updateTitle');
-  var updateNotes = document.getElementById('updateNotes');
-  var updateLink = document.getElementById('updateLink');
-  var updateLater = document.getElementById('updateLater');
+  var APP_VERSION = '1.0.6';
+  var updateModal = document.getElementById('updateModal');
+  var updateModalTitle = document.getElementById('updateModalTitle');
+  var updateModalNotes = document.getElementById('updateModalNotes');
+  var updateModalCurrent = document.getElementById('updateModalCurrent');
+  var updateModalVersion = document.getElementById('updateModalVersion');
+  var updateModalGo = document.getElementById('updateModalGo');
+  var updateModalLater = document.getElementById('updateModalLater');
 
   var state = {
     tab: 'tasks',
@@ -24,11 +26,7 @@
     filter: 'all',          // all | open | mine
     tasks: [],
     update: null,           // 远端 version.json 里比本机新的版本
-    contracts: [],          // 桌面端导出的合同进度（只读）
-    contractsUpdated: '',
-    contractsError: '',
-    contractsLoaded: false,
-    contractsLoading: false,    updated: '',
+    updated: '',
     source: 'local',
     offline: false,
     error: '',
@@ -81,17 +79,24 @@
     return 0;
   }
 
-  function hideUpdate() {
-    if (updateBar) updateBar.hidden = true;
+  var updateDismissed = '';
+
+  function hideUpdate(dismiss) {
+    if (dismiss && state.update) updateDismissed = String(state.update.version);
+    if (updateModal) updateModal.hidden = true;
   }
 
   function showUpdate(info) {
-    if (!updateBar) return;
-    updateTitle.textContent = '发现新版本 v' + info.version;
-    updateNotes.textContent = info.notes || '修复问题并优化体验';
-    updateLink.href = info.apk ||
-      'https://github.com/Toriesta/trplink/releases/latest';
-    updateBar.hidden = false;
+    if (!updateModal) return;
+    updateModalTitle.textContent = '发现新版本 v' + info.version;
+    updateModalNotes.textContent = info.notes || '修复问题并优化体验';
+    if (updateModalCurrent) updateModalCurrent.textContent = APP_VERSION;
+    if (updateModalVersion) updateModalVersion.textContent = info.version;
+    if (updateModalGo) {
+      updateModalGo.href = info.apk ||
+        'https://github.com/Toriesta/trplink/releases/latest';
+    }
+    updateModal.hidden = false;
   }
 
   /* 版本文件有三个来源：国内直连 raw 常被重置，按 CDN → raw → API 依次尝试 */
@@ -147,12 +152,14 @@
       var info = await fetchVersionInfo();
       if (cmpVer(info.version, APP_VERSION) <= 0) {
         state.update = null;
-        hideUpdate();
+        updateDismissed = '';
+        hideUpdate(false);
         if (manual) toast('已是最新版本 v' + APP_VERSION);
       } else {
         state.update = info;
-        showUpdate(info);
-        if (manual) toast('发现新版本 v' + info.version);
+        // 自动检查时，用户已经在本次启动里点过「稍后提醒」就不再打扰；
+        // 手动点「检查更新」仍然强制弹出。
+        if (manual || String(info.version) !== updateDismissed) showUpdate(info);
       }
     } catch (e) {
       if (manual) toast('检查更新失败：' + ((e && e.message) || '网络问题'));
@@ -174,31 +181,37 @@
   function filtered() {
     var list = state.tasks;
     if (state.filter === 'open') list = list.filter(function (t) { return t.status === 'open'; });
-    if (state.filter === 'mine') list = list.filter(function (t) { return S.isMine(t, state.cfg.wechat || state.cfg.name); });
+    if (state.filter === 'mine') list = list.filter(function (t) { return S.isMine(t, state.cfg); });
     return sortTasks(list);
   }
 
   /* ------------------------------------------------------------ 卡片 */
   function cardHTML(t, i) {
-    var mine = S.isMine(t, state.cfg.wechat || state.cfg.name);
+    var mine = S.isMine(t, state.cfg);
     var left = S.daysLeft(t.deadline);
     var urgent = left !== null && left <= 2;
     var meta = [S.codeOf(t), S.deadlineText(t.deadline)];
     var tags = (t.tags || []).slice(0, t.assignedTo ? 1 : 2);
     tags.forEach(function (g) { if (g) meta.push(g); });
     if (t.assignedTo) {
-      meta.push('指定给 ' + (S.isMine(t, state.cfg.wechat || state.cfg.name) ? '你' : t.assignedTo));
+      meta.push('指定给 ' + (S.isMine(t, state.cfg) ? '你' : t.assignedTo));
     }
 
     var ROLE_FILE = { biz: 'biz', writer: 'writer', editor: 'editor',
-                      review: 'review', aigc: 'aigc', boss: 'boss' };
+                      review: 'review', aigc: 'aigc', boss: 'boss', toli: 'toli' };
     var ROLE_TIP = { biz: '商务', writer: '编剧', editor: '剪辑',
-                     review: '审片', aigc: 'AIGC', boss: '老板' };
-    var roleKey = ROLE_FILE[String(t.role ? t.role : '')];
+                     review: '审片', aigc: 'AIGC', boss: '老板', toli: '执行代理' };
+    var ROLE_ALIAS = { business: 'biz', me: 'boss', '商务': 'biz', '编剧': 'writer',
+                       '剪辑': 'editor', '编辑': 'editor', '审片': 'review',
+                       '老板': 'boss', '执行代理': 'toli' };
+    var rawRole = String(t.role || '').trim();
+    var roleKey = ROLE_FILE[rawRole.toLowerCase()] || ROLE_ALIAS[rawRole] ||
+      ROLE_ALIAS[rawRole.toLowerCase()];
     var badge = roleKey
       ? '<img class="tcard-role" src="roles/' + roleKey + '_sm.png" alt="' +
         esc(ROLE_TIP[roleKey]) + '" title="' + esc(ROLE_TIP[roleKey]) + '">'
-      : '<span class="tcard-level" title="' + esc(S.codeOf(t)) + '">' + esc(t.secret) + '</span>';
+      : '<span class="tcard-level" title="' + esc(S.codeOf(t)) + '">' +
+        esc(S.codeOf(t)) + '</span>';
 
     var statusText = S.STATUS[t.status] ? S.STATUS[t.status] : t.status;
     var right = t.status === 'open'
@@ -207,8 +220,9 @@
 
     return '' +
       '<article class="card tcard p' + (Number(t.priority) ? Number(t.priority) : 2) + '" data-act="detail" data-id="' + esc(t.id) + '" style="--i:' + i + '" role="button" tabindex="0">' +
-        '<span class="tcard-no">' + esc(t.id) + '</span>' +
-        badge +
+        '<div class="tcard-avatar">' + badge +
+          (urgent ? '<i class="tcard-alert"></i>' : '') +
+        '</div>' +
         '<div class="tcard-body">' +
           '<div class="tcard-title">' + esc(t.title) + '</div>' +
           '<div class="tcard-meta' + (urgent ? ' urgent' : '') + '">' + esc(meta.join(' · ')) + '</div>' +
@@ -217,7 +231,6 @@
           '<span class="tcard-price">¥' + esc(S.money(t.reward)) + '</span>' +
           right +
         '</div>' +
-        (urgent ? '<i class="tcard-alert"></i>' : '') +
       '</article>';
   }
 
@@ -239,7 +252,7 @@
 
   /* ------------------------------------------------------------ 页面 */
   function renderTasks() {
-    var st = S.stats(state.tasks, state.cfg.name);
+    var st = S.stats(state.tasks, state.cfg);
     var list = filtered();
     var dueToday = list.filter(function (x) {
       var l = S.daysLeft(x.deadline);
@@ -288,90 +301,9 @@
       (state.error ? '<p class="hint" style="margin-top:14px">⚠️ ' + esc(state.error) + '</p>' : '');
   }
 
-  var C_STATUS = { active: '在办', settling: '待结算', done: '已结项' };
-
-  function contractHTML(c) {
-    var total = Number(c.total) || 0;
-    var done = Number(c.progress) || 0;
-    var pct = total ? Math.max(0, Math.min(100, Math.round(done / total * 100))) : 0;
-    var due = String(c.due || '').slice(5);
-    var late = c.status === 'active' && c.due && c.due < S.todayISO();
-    var money = '¥' + S.money(c.amount);
-    var settle = '';
-    if (c.settle && (c.settle.client || c.settle.vendor)) {
-      settle = '<div class="c-settle">' +
-        (c.settle.client_done ? '已收 ' + money : '应收 ' + money) +
-        ' · ' +
-        (c.settle.vendor_done ? '已付 ¥' + S.money(c.settle.vendor)
-          : '应付 ¥' + S.money(c.settle.vendor)) +
-        '</div>';
-    }
-    return '<article class="contract-card' + (c.waiting_me ? ' is-waiting' : '') + '">' +
-      '<div class="c-top">' +
-        '<span class="c-code">' + esc(c.code || '') + '</span>' +
-        '<span class="badge ' + (c.status === 'done' ? 'done' : 'muted') + '">' +
-          esc(C_STATUS[c.status] || '在办') + '</span>' +
-        (c.waiting_me ? '<span class="badge claimed">待你验收</span>' : '') +
-      '</div>' +
-      '<h3 class="c-title">' + esc(c.title || '') + '</h3>' +
-      '<p class="c-meta">' + esc(c.client || '未写甲方') + ' · ' + money +
-        (due ? ' · 交付 ' + esc(due) + (late ? '（已逾期）' : '') : '') + '</p>' +
-      '<div class="c-bar"><i style="width:' + pct + '%"></i></div>' +
-      '<div class="c-foot">' +
-        '<span>' + (c.current ? '当前：' + esc(c.current) : '已全部完成') + '</span>' +
-        '<span>' + done + '/' + total + '</span>' +
-      '</div>' +
-      (c.waiting_me ? '<div class="c-wait">等你验收：' + esc(c.current || '') + '</div>' : '') +
-      settle +
-    '</article>';
-  }
-
-  function renderContracts() {
-    var cs = state.contracts || [];
-    var active = cs.filter(function (c) { return c.status === 'active'; }).length;
-    var wait = cs.filter(function (c) { return c.waiting_me; }).length;
-
-    var body;
-    if (state.contractsLoading && !cs.length) {
-      body = skeletonHTML();
-    } else if (!cs.length) {
-      body = emptyHTML('还没有合同',
-        '在电脑上建单后点「同步手机」，合同进度会出现在这里');
-    } else {
-      body = '<div class="list">' + cs.map(contractHTML).join('') + '</div>';
-    }
-
-    view.innerHTML = '' +
-      '<section class="hero">' +
-        '<div class="hero-row"><h1>合同</h1>' +
-          (wait ? '<span class="count-pill">' + wait + ' 单待验收</span>' : '') + '</div>' +
-        '<p>' + (cs.length ? active + ' 单在办 · ' + cs.length + ' 单记录' : '只读进度') +
-          (state.contractsUpdated ? ' · 更新于 ' +
-            esc(String(state.contractsUpdated).replace('T', ' ').slice(5, 16)) : '') + '</p>' +
-      '</section>' +
-      body +
-      (state.contractsError
-        ? '<p class="hint" style="margin-top:14px">⚠️ ' + esc(state.contractsError) + '</p>'
-        : '');
-  }
-
-  async function loadContracts() {
-    state.contractsLoading = true;
-    try {
-      var got = await S.readContracts();
-      state.contracts = (got.data && got.data.contracts) || [];
-      state.contractsUpdated = (got.data && got.data.updated) || '';
-      state.contractsError = got.error || '';
-    } catch (e) {
-      state.contractsError = (e && e.message) || '合同读取失败';
-    }
-    state.contractsLoaded = true;
-    state.contractsLoading = false;
-  }
-
   function renderMine() {
-    var st = S.stats(state.tasks, state.cfg.name);
-    var mine = sortTasks(state.tasks.filter(function (t) { return S.isMine(t, state.cfg.wechat || state.cfg.name); }));
+    var st = S.stats(state.tasks, state.cfg);
+    var mine = sortTasks(state.tasks.filter(function (t) { return S.isMine(t, state.cfg); }));
     var doing = mine.filter(function (t) { return t.status === 'claimed'; });
 
     var body = mine.length
@@ -451,15 +383,13 @@
           '<p class="hint">' + esc(c.owner + '/' + c.repo + ' · ' + c.branch) + '</p>' +
           '<p class="hint">断网时只读本机缓存，不会出现假任务；换仓库由管理员重打包。</p>' +
         '</div>' +
-        (c.token
-          ? '<div class="field"><div class="field-label">访问令牌</div>' +
-            '<p class="hint">已内置（管理员配置），接单、交付、评分直接可用，不用自己申请。</p></div>'
-          : fieldHTML('访问令牌', 'token', '', 'github_pat_…',
-              '本机没有内置令牌，需管理员提供一个 contents:write 的令牌。', 'password')) +
-      '</div>' +
-
-      '<div class="actions" style="margin:0 0 16px">' +
-        '<button class="btn ink block" type="button" data-act="save">保存令牌</button>' +
+        '<div class="field">' +
+          '<div class="field-label">访问令牌</div>' +
+          '<p class="hint">' + (c.token
+            ? '已内置并锁定，随 App 固定，界面上不显示也不允许修改。'
+            : '未取到内置令牌，请重新安装或联系管理员；这里不提供手动填写入口。') +
+          '</p>' +
+        '</div>' +
       '</div>' +
 
       '<div class="section-title">版本</div>' +
@@ -497,7 +427,6 @@
 
   function render() {
     if (state.tab === 'tasks') renderTasks();
-    else if (state.tab === 'contracts') renderContracts();
     else if (state.tab === 'mine') renderMine();
     else renderSettings();
 
@@ -542,7 +471,7 @@
     if (!t) return;
     state.sheetId = id;
 
-    var mine = S.isMine(t, state.cfg.wechat || state.cfg.name);
+    var mine = S.isMine(t, state.cfg);
     var left = S.daysLeft(t.deadline);
     var ROLE_SM = { biz: 'biz', writer: 'writer', editor: 'editor',
                     review: 'review', aigc: 'aigc', boss: 'boss' };
@@ -698,10 +627,8 @@
     await load(true);
     // 人才库和任务池是两个文件：只刷任务会导致刚加的人「刷新了也登不了」
     try { await S.readUsers(); } catch (e) { /* 离线时沿用缓存 */ }
-    await loadContracts();
     refreshBtn.classList.remove('is-spinning');
-    if (!state.error) toast('已同步任务、人才库与合同');
-    if (state.tab === 'contracts') render();
+    if (!state.error) toast('已同步任务与人才库');
   }
 
   /* ------------------------------------------------------------ 事件 */
@@ -793,26 +720,12 @@
     if (act === 'filter') { state.filter = el.getAttribute('data-filter'); render(); return; }
     if (act === 'checkUpdate') { checkUpdate(true); return; }
 
-    if (act === 'save') {
-      // 只允许改令牌；仓库、身份都由管理员与 App 决定
-      var tokenInput = view.querySelector('[data-set="token"]');
-      state.cfg = S.saveConfig({ token: tokenInput ? tokenInput.value.trim() : '' });
-      toast('令牌已保存，正在同步…');
-      doRefresh();
-      return;
-    }
   });
 
   document.addEventListener('click', function (ev) {
     var b = ev.target.closest ? ev.target.closest('.tab') : null;
     if (!b) return;
     state.tab = b.getAttribute('data-tab');
-    if (state.tab === 'contracts' && !state.contractsLoaded) {
-      state.contractsLoading = true;
-      render();
-      loadContracts().then(render);
-      return;
-    }
     render();
   });
 
@@ -821,9 +734,22 @@
   });
 
   refreshBtn.addEventListener('click', doRefresh);
-  if (updateLater) updateLater.addEventListener('click', hideUpdate);
+  if (updateModalLater) {
+    updateModalLater.addEventListener('click', function () { hideUpdate(true); });
+  }
+  if (updateModal) {
+    updateModal.addEventListener('click', function (ev) {
+      if (ev.target.getAttribute && ev.target.getAttribute('data-update-close')) {
+        hideUpdate(true);
+      }
+    });
+  }
 
   document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && updateModal && !updateModal.hidden) {
+      hideUpdate(true);
+      return;
+    }
     if (ev.key === 'Escape' && !sheet.hidden) closeSheet();
   });
 
@@ -997,6 +923,7 @@
       }
       if (cap.Plugins.App) {
         cap.Plugins.App.addListener('backButton', function () {
+          if (updateModal && !updateModal.hidden) { hideUpdate(true); return; }
           if (!sheet.hidden) { closeSheet(); return; }
           if (state.tab !== 'tasks') { state.tab = 'tasks'; render(); return; }
           cap.Plugins.App.exitApp();

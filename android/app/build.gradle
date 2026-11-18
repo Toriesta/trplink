@@ -7,8 +7,8 @@ android {
         applicationId "com.tsrelpus.tasks"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "1.0.4"
+        versionCode 7
+        versionName "1.0.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +16,23 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        // 发行商：天枢架构（CN=天枢架构, O=Tsrelpus）
+        tsrelpus {
+            storeFile file("../tsrelpus.keystore")
+            storePassword "trplink2026"
+            keyAlias "tsrelpus"
+            keyPassword "trplink2026"
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.tsrelpus
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.tsrelpus
         }
     }
 }

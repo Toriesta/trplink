@@ -18,8 +18,7 @@
     path: 'tasks.json',
     usersPath: 'users.json',
     ratingsPath: 'ratings.json',
-    contractsPath: 'contracts.json',
-    token: '',           // 由构建时注入或管理员填写；接单者不用管
+    token: '',           // 只由 www/token.json 注入；界面不可见、不可改
     builtin_token: false,
     wechat: '',          // 登录身份由工号映射，接单归属仍按微信号算
     name: '',
@@ -98,12 +97,29 @@
     Object.keys(DEFAULT_CONFIG).forEach(function (k) {
       out[k] = cfg[k] !== undefined && cfg[k] !== null ? cfg[k] : DEFAULT_CONFIG[k];
     });
+    // 仓库也随 App 固定，老配置里改过的值一律覆盖回来
+    out.owner = REPO.owner;
+    out.repo = REPO.repo;
+    out.branch = REPO.branch;
     return out;
   }
 
   function saveConfig(patch) {
     var cfg = getConfig();
-    Object.keys(patch || {}).forEach(function (k) { cfg[k] = patch[k]; });
+    Object.keys(patch || {}).forEach(function (k) {
+      // 访问令牌只允许由内置 token.json 写入，任何界面调用都改不动
+      if (k === 'token' || k === 'builtin_token') return;
+      cfg[k] = patch[k];
+    });
+    writeJSON(CFG_KEY, cfg);
+    return cfg;
+  }
+
+  // 仅 internal：把内置令牌写进本机配置，绕开 saveConfig 的令牌保护
+  function setBuiltinToken(token) {
+    var cfg = getConfig();
+    cfg.token = String(token || '').trim();
+    cfg.builtin_token = !!cfg.token;
     writeJSON(CFG_KEY, cfg);
     return cfg;
   }
@@ -112,17 +128,19 @@
     return !!(cfg.owner && cfg.repo && cfg.path);
   }
 
-  // 内置令牌：构建时写进 www/token.json，接单者不需要自己申请 PAT
+  // 内置令牌：构建时写进 www/token.json，接单者不需要自己申请 PAT。
+  // 每次启动都以包内 token.json 为准覆盖本机值，保证口令固定、不可篡改。
   function ensureBuiltinToken() {
     var cfg = getConfig();
-    if (cfg.token) return Promise.resolve(cfg);
     if (typeof fetch !== 'function') return Promise.resolve(cfg);
     return fetch('token.json', { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
-        if (!d) return cfg;
-        if (!d.token) return cfg;
-        return saveConfig({ token: String(d.token), builtin_token: true });
+        if (!d || !d.token) return cfg;
+        var token = String(d.token).trim();
+        if (!token) return cfg;
+        if (cfg.token === token && cfg.builtin_token) return cfg;
+        return setBuiltinToken(token);
       })
       .catch(function () { return cfg; });
   }
@@ -192,8 +210,27 @@
     return true;
   }
 
+  // 人才端只处理两类任务：指派给自己的，和还没人接、可自由抢单的。
+  // 别人接走的、指派给别人的，一律不展示，也不允许操作。
+  function isAssignedTo(task, cfg) {
+    var to = String((task && task.assignedTo) || '').trim();
+    if (!to) return false;
+    var me = String((cfg && cfg.wechat) || '').trim();
+    var name = String((cfg && cfg.name) || '').trim();
+    return to === me || (!!name && to === name);
+  }
+
+  function canTake(task, cfg) {
+    var assigned = String((task && task.assignedTo) || '').trim();
+    if (assigned && !isAssignedTo(task, cfg)) return false;
+    if (String((task && task.status) || 'open') === 'open') return true;
+    return isMine(task, (cfg && (cfg.wechat || cfg.name)) || '') || isAssignedTo(task, cfg);
+  }
+
   function visible(tasks, cfg) {
-    return (tasks || []).filter(function (t) { return canSee(t, cfg); });
+    return (tasks || []).filter(function (t) {
+      return canSee(t, cfg) && canTake(t, cfg);
+    });
   }
 
   // 管理员可能在仓库里新授予可信身份：每次读取都按人才库刷新一次
@@ -419,30 +456,6 @@
     };
   }
 
-  /* ------------------------------------------------------------ 合同进度（只读）
-   * 由桌面端导出 contracts.json 后同步到仓库；手机端只读，不提供改状态入口。
-   */
-  var CONTRACTS_KEY = 'trp_contracts_v1';
-
-  function localContracts() {
-    return readJSON(CONTRACTS_KEY, { contracts: [] });
-  }
-
-  async function readContracts() {
-    var cfg = getConfig();
-    try {
-      var got = await githubRead(cfg, cfg.contractsPath || 'contracts.json');
-      var data = got.data || { contracts: [] };
-      if (!Array.isArray(data.contracts)) data.contracts = [];
-      writeJSON(CONTRACTS_KEY, data);
-      return { data: data, source: 'github', error: '' };
-    } catch (e) {
-      var msg = (e && e.message) || '';
-      if (/404|还没有/.test(msg)) msg = '';   // 首次尚未导出，按空列表处理
-      return { data: localContracts(), source: 'cache', error: msg };
-    }
-  }
-
   function find(tasks, id) {
     for (var i = 0; i < tasks.length; i++) if (tasks[i].id === id) return tasks[i];
     return null;
@@ -473,8 +486,11 @@
           + me.craftMax + '；先升级能力，或让管理员直接指派');
       }
       if (t.status !== 'open') throw new Error('这单已经被接走了');
+      if (t.claimedBy && String(t.claimedBy).trim() !== me.wx) {
+        throw new Error('这单已经被接走了');
+      }
       var assigned = String(t.assignedTo || '').trim();
-      if (assigned && assigned !== me.wx) {
+      if (assigned && assigned !== me.wx && assigned !== me.name) {
         throw new Error('这单指定给了 ' + assigned + '，不能抢');
       }
       t.status = 'claimed';
@@ -542,14 +558,23 @@
   }
 
   function isMine(task, ident) {
-    var s = String(ident || '').trim();
-    if (!s) return false;
-    if (String(task.claimedBy || '').trim() === s) return true;
-    return String(task.claimedName || '').trim() === s;   // 兼容旧数据只写了名字的记录
+    var ids = [];
+    if (ident && typeof ident === 'object') {
+      ids = [String(ident.wechat || '').trim(), String(ident.name || '').trim()];
+    } else {
+      ids = [String(ident || '').trim()];
+    }
+    ids = ids.filter(function (x) { return !!x; });
+    if (!ids.length) return false;
+    return ids.some(function (s) {
+      if (String(task.assignedTo || '').trim() === s) return true;
+      if (String(task.claimedBy || '').trim() === s) return true;
+      return String(task.claimedName || '').trim() === s;   // 兼容旧数据只写了名字的记录
+    });
   }
 
-  function stats(tasks, name) {
-    var mine = tasks.filter(function (t) { return isMine(t, name); });
+  function stats(tasks, ident) {
+    var mine = tasks.filter(function (t) { return isMine(t, ident); });
     var doing = mine.filter(function (t) { return t.status === 'claimed'; }).length;
     var submitted = mine.filter(function (t) { return t.status === 'submitted'; }).length;
     var earned = mine.filter(function (t) { return t.status === 'done'; })
@@ -579,7 +604,6 @@
     login: login,
     readUsers: readUsers,
     readRatings: readRatings,
-    readContracts: readContracts,
     rateClient: rateClient,
     clientStats: clientStats,
     load: load,
