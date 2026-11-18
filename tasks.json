@@ -1,26 +1,4 @@
 {
-  "updated": "2026-11-19T00:22:58+08:00",
-  "tasks": [
-    {
-      "id": "T-2611-01",
-      "title": "链路自检：上传验证",
-      "brief": "",
-      "desc": "",
-      "reward": 1.0,
-      "deadline": "2026-11-30",
-      "priority": 2,
-      "tags": [],
-      "secret": "C",
-      "craft": 2,
-      "client": "",
-      "role": "biz",
-      "assignedTo": "",
-      "status": "open",
-      "claimedBy": "",
-      "claimedName": "",
-      "claimedAt": "",
-      "submittedAt": "",
-      "checklist": []
-    }
-  ]
+  "updated": "2026-11-19T00:00:00+08:00",
+  "tasks": []
 }
