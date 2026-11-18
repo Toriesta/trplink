@@ -1,6 +1,6 @@
 {
-  "version": "1.0.9",
+  "version": "1.0.10",
   "released": "2026-11-19",
-  "notes": "更换应用包名，解决与现有软件包重名无法安装的问题；安装后请卸载旧的「TRP 任务台」",
-  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.9/app-debug.apk"
+  "notes": "新增摄影 / 演员 / 美术 / 录音 / 化妆 / 场务六个基层岗位图标，AI 拆解任务可直接分配",
+  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.10/app-debug.apk"
 }
