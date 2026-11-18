@@ -207,7 +207,6 @@
 
     return '' +
       '<article class="card tcard p' + (Number(t.priority) ? Number(t.priority) : 2) + '" data-act="detail" data-id="' + esc(t.id) + '" style="--i:' + i + '" role="button" tabindex="0">' +
-        '<span class="tcard-sheen"></span>' +
         badge +
         '<div class="tcard-body">' +
           '<div class="tcard-title">' + esc(t.title) + '</div>' +

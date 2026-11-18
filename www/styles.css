@@ -1128,23 +1128,14 @@ svg { display: block; }
   gap: 13px;
   padding: 15px 16px;
   border-radius: 24px;
-  background: linear-gradient(158deg, #2E2657 0%, #241D42 52%, #201A3A 100%);
+  background: #2A2350;
   border: 1px solid rgba(255, 255, 255, 0.085);
-  box-shadow: 0 12px 26px rgba(16, 8, 32, 0.22),
-              inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  box-shadow: 0 12px 26px rgba(16, 8, 32, 0.22);
   color: #F4F0E6;
   overflow: visible;
 }
 .card.tcard::before,
 .card.tcard::after { display: none; }
-/* 左上角一层极淡的斜向受光，模拟卡片被侧光照到 */
-.card.tcard > .tcard-sheen {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(122deg, rgba(255, 255, 255, 0.07), transparent 46%);
-  pointer-events: none;
-}
 
 .tcard-role {
   width: 44px;
@@ -1201,13 +1192,12 @@ svg { display: block; }
   padding: 9px 15px;
   border-radius: 999px;
   border: 0;
-  background: linear-gradient(180deg, #FF7F6C, #F2634F);
+  background: #FF6E5B;
   color: #FFFFFF;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.2px;
-  box-shadow: 0 6px 14px rgba(226, 78, 60, 0.35),
-              inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  box-shadow: 0 6px 14px rgba(226, 78, 60, 0.32);
   transition: transform 0.16s var(--spring), background 0.2s ease;
 }
 .tcard-btn:active { transform: scale(0.95); background: #E5513F; }
