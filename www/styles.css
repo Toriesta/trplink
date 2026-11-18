@@ -1128,16 +1128,22 @@ svg { display: block; }
   gap: 12px;
   padding: 13px 14px;
   border-radius: 16px;
-  background: #FFFDF9;
-  border: 1px solid rgba(120, 110, 150, 0.14);
+  background: #272046;
+  border: 1px solid rgba(255, 255, 255, 0.09);
   box-shadow: none;
-  color: #221A33;
+  color: #F4F0E6;
   overflow: visible;
 }
 .card.tcard::before,
 .card.tcard::after { display: none; }
 
-.tcard-role { width: 40px; height: 40px; flex: 0 0 auto; border-radius: 50%; }
+.tcard-role {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
 .tcard-level {
   width: 40px;
   height: 40px;
@@ -1145,8 +1151,8 @@ svg { display: block; }
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #F3EFFA;
-  color: #6C5B9B;
+  background: rgba(255, 255, 255, 0.12);
+  color: #F4F0E6;
   font: 700 13px/1 var(--din);
 }
 
@@ -1155,14 +1161,14 @@ svg { display: block; }
   font-size: 14.5px;
   font-weight: 600;
   line-height: 1.35;
-  color: #221A33;
+  color: #F4F0E6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.tcard-meta { margin-top: 3px; font-size: 11px; color: #8A8299; }
-.tcard-meta.urgent { color: #E5513F; }
+.tcard-meta { margin-top: 3px; font-size: 11px; color: rgba(244, 240, 230, 0.6); }
+.tcard-meta.urgent { color: #FF9B8C; }
 
 .tcard-right {
   display: flex;
@@ -1170,7 +1176,7 @@ svg { display: block; }
   gap: 9px;
   flex: 0 0 auto;
 }
-.tcard-price { font: 600 15px/1 var(--din); color: #221A33; }
+.tcard-price { font: 600 15px/1 var(--din); color: #F4F0E6; }
 .tcard-btn {
   padding: 8px 16px;
   border-radius: 999px;
@@ -1188,11 +1194,11 @@ svg { display: block; }
   border-radius: 999px;
   font-size: 10.5px;
   font-weight: 600;
-  background: #F3EFFA;
-  color: #6C5B9B;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(244, 240, 230, 0.9);
 }
-.tcard-state.submitted { background: #FFF3DC; color: #A97718; }
-.tcard-state.done { background: #EAF6EF; color: #3E8E63; }
+.tcard-state.submitted { background: rgba(255, 199, 102, 0.22); color: #FFD79B; }
+.tcard-state.done { background: rgba(120, 200, 160, 0.2); color: #A8E6C4; }
 
 .tcard-alert {
   position: absolute;
