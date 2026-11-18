@@ -24,7 +24,8 @@
     wechat: '',          // 登录身份由工号映射，接单归属仍按微信号算
     name: '',
     trusted: false,
-    craft_max: 10
+    craft_max: 10,
+    job_role: '',
   };
 
   // 保密等级：A 只留在管理员本机（不进共享池），B 仅可信成员，C 任何人可接
@@ -173,6 +174,7 @@
       name: hit.name || '',
       trusted: !!hit.trusted,
       craft_max: Number(hit.craft_max != null ? hit.craft_max : 10),
+      job_role: String(hit.job_role || ''),
     });
     return hit;
   }

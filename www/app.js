@@ -327,11 +327,19 @@
       ? '<div class="list">' + mine.map(cardHTML).join('') + '</div>'
       : emptyHTML('这里还空着', '接下的任务会按「进行中 / 待验收 / 已完成」分组显示');
 
+    var ROLE_CN = { biz: '商务', writer: '编剧', editor: '剪辑',
+                    aigc: 'AIGC 制作', review: '审片', boss: '老板', toli: '执行代理' };
+    var role = state.cfg.job_role || '';
+    var roleHTML = role
+      ? '<img class="role-badge" src="roles/' + esc(role) + '.png" alt="' +
+        esc(ROLE_CN[role] || role) + '">'
+      : '';
+
     view.innerHTML = '' +
       '<section class="hero">' +
-        '<div class="hero-row"><h1>我的任务</h1>' +
+        '<div class="hero-row">' + roleHTML + '<h1>我的任务</h1>' +
         (st.mine ? '<span class="count-pill">' + st.mine + ' 单</span>' : '') + '</div>' +
-        '<p>' + (state.cfg.wechat ? esc(state.cfg.wechat) : '还没用微信号登录，去设置里登录') +
+        '<p>' + (role ? (ROLE_CN[role] || role) + ' ・ ' : '') + (state.cfg.wechat ? esc(state.cfg.wechat) : '还没用工号登录，去设置里登录') +
         ' · 手上 ' + st.doing + ' 单要做</p>' +
       '</section>' +
       '<div class="stats">' +

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-18",
+  "updated": "2026-11-18T20:21:19+08:00",
   "users": [
     {
       "wechat": "SimoHoia0523",
@@ -9,7 +9,8 @@
       "craft_max": 10,
       "registeredAt": "2026-11-17",
       "note": "管理员：唯一可发布 / 指派 / 改密级与制作水平的人",
-      "code": "1001"
+      "code": "1001",
+      "job_role": "boss"
     },
     {
       "wechat": "A19943864586",
@@ -19,7 +20,8 @@
       "craft_max": 4,
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 剪辑",
-      "code": "1003"
+      "code": "1003",
+      "job_role": "editor"
     },
     {
       "wechat": "lyc1039791451",
@@ -29,7 +31,8 @@
       "craft_max": 2,
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 剪辑",
-      "code": "1004"
+      "code": "1004",
+      "job_role": "editor"
     },
     {
       "wechat": "SJY20208620221219",
@@ -39,7 +42,8 @@
       "craft_max": 2,
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 软件开发",
-      "code": "1005"
+      "code": "1005",
+      "job_role": "aigc"
     },
     {
       "wechat": "wxid_pe6h9g3um8ye22",
@@ -49,7 +53,8 @@
       "craft_max": 6,
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 编剧，文学顾问",
-      "code": "1006"
+      "code": "1006",
+      "job_role": "writer"
     },
     {
       "wechat": "X0o0o0JH",
@@ -59,7 +64,8 @@
       "craft_max": 6,
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 软件工程师",
-      "code": "1007"
+      "code": "1007",
+      "job_role": "aigc"
     },
     {
       "wechat": "yf072415",
@@ -69,7 +75,8 @@
       "craft_max": 6,
       "registeredAt": "2026-11-17",
       "note": "从 TRP Link 1.0 团队库同步 · 商务",
-      "code": "1008"
+      "code": "1008",
+      "job_role": "biz"
     }
   ]
 }
