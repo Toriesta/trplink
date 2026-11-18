@@ -1170,6 +1170,14 @@ svg { display: block; }
   box-shadow: 0 0 0 3px rgba(255, 95, 78, 0.2);
   z-index: 2;
 }
+@media (max-width: 374px) {
+  .card.tcard { gap: 9px; padding: 9px 10px 9px 8px; }
+  .tcard-avatar,
+  .tcard-role,
+  .tcard-level { width: 50px; height: 50px; }
+  .tcard-price { font-size: 13.5px; }
+  .tcard-btn { padding: 8px 11px; font-size: 11.5px; }
+}
 
 /* ---------------------------------------------------------------- 小字与细节 */
 .hero-tiny {

@@ -11,7 +11,7 @@
   var toastEl = document.getElementById('toast');
   var refreshBtn = document.getElementById('btnRefresh');
 
-  var APP_VERSION = '1.0.6';
+  var APP_VERSION = '1.0.7';
   var updateModal = document.getElementById('updateModal');
   var updateModalTitle = document.getElementById('updateModalTitle');
   var updateModalNotes = document.getElementById('updateModalNotes');
