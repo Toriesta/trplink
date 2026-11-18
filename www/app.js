@@ -275,10 +275,10 @@
         (state.offline ? ' · 离线缓存' : '') + '</p>' +
       '</section>' +
       '<p class="hero-tiny">' +
-        esc('共 ' + state.tasks.length + ' 单 ・ 待接 ' + st.open +
-            (st.doing ? ' ・ 进行中 ' + st.doing : '') +
-            (dueToday ? ' ・ 今天到期 ' + dueToday : '') +
-            (state.updated ? ' ・ 更新于 ' + String(state.updated).replace('T', ' ').slice(5, 16) : '')) +
+        esc(state.tasks.length + ' TASKS ・ ' + st.open + ' OPEN' +
+            (st.doing ? ' ・ ' + st.doing + ' ACTIVE' : '') +
+            (dueToday ? ' ・ ' + dueToday + ' DUE TODAY' : '') +
+            (state.updated ? ' ・ UPD ' + String(state.updated).slice(11, 16) : '')) +
       '</p>' +
       '<div class="chips">' + chips.map(function (c) {
         return '<button class="chip' + (state.filter === c[0] ? ' is-on' : '') +
