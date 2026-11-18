@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <circle cx="64" cy="64" r="64" fill="#1B1526"/>
+  <circle cx="64" cy="64" r="61.5" stroke="#F4F0E6" stroke-opacity=".12"/>
+  <circle cx="64" cy="64" r="56.5" stroke="#F4F0E6" stroke-opacity=".3" stroke-width="1.8"/>
+  <circle cx="64" cy="64" r="50.5" stroke="#F4F0E6" stroke-opacity=".14" stroke-width="1.6" stroke-dasharray="1.5 5.5"/>
+  <rect x="60.8" y="1.8" width="6.4" height="6.4" rx="1" transform="rotate(45 64 5)" fill="#FF6E5B"/>
+  <rect x="119.5" y="61" width="6" height="6" rx="1" fill="#FF6E5B"/>
+  <rect x="61" y="119.5" width="6" height="6" rx="1" fill="#FF6E5B"/>
+  <rect x="2.5" y="61" width="6" height="6" rx="1" fill="#FF6E5B"/>
+  <circle cx="104" cy="24" r="1.7" fill="#F4F0E6" fill-opacity=".38"/>
+  <circle cx="104" cy="104" r="1.7" fill="#F4F0E6" fill-opacity=".38"/>
+  <circle cx="24" cy="104" r="1.7" fill="#F4F0E6" fill-opacity=".38"/>
+  <circle cx="24" cy="24" r="1.7" fill="#F4F0E6" fill-opacity=".38"/>
+  <path d="M43 107c12 7 30 7 42 0" stroke="#FF6E5B" stroke-opacity=".5" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M64 24l34 20v40L64 104 30 84V44z" stroke="#F4F0E6" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M64 40l20 12v24L64 88 44 76V52z" stroke="#F4F0E6" stroke-opacity=".2" stroke-width="2" stroke-dasharray="3 4" stroke-linejoin="round"/>
+  <path d="M57 52l19 12-19 12z" fill="#FF6E5B"/>
+</svg>

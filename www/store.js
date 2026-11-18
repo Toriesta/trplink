@@ -24,7 +24,8 @@
     name: '',
     trusted: false,
     craft_max: 10,
-    job_role: '',
+    job_role: '',        // 旧字段，兼容只读一个身份的版本
+    roles: [],           // 身份图标，最多 3 个
   };
 
   // 保密等级：A 只留在管理员本机（不进共享池），B 仅可信成员，C 任何人可接
@@ -174,6 +175,20 @@
     }
   }
 
+  // 一个成员最多 3 个身份；兼容旧数据只有 job_role 的情况
+  function rolesOf(user) {
+    var arr = user && user.roles;
+    var keys = [];
+    if (Array.isArray(arr)) {
+      keys = arr.map(function (x) { return String(x || '').trim(); })
+        .filter(function (x) { return !!x; });
+    } else {
+      var one = String((user && user.job_role) || '').trim();
+      if (one) keys = [one];
+    }
+    return keys.slice(0, 3);
+  }
+
   // 数字工号登录：中文输入法打不出微信号，也不允许点名字冒名顶替
   async function login(codeOrWechat) {
     var key = String(codeOrWechat || '').trim();
@@ -187,12 +202,14 @@
     // 只有管理员录入人才库的人才有工号；不存在「点名字登录」这种冒名入口
     if (!hit) throw new Error('工号不在人才库里，请联系管理员确认');
     if (hit.role === 'admin') throw new Error('管理员账号不在手机端登录');
+    var roles = rolesOf(hit);
     saveConfig({
       wechat: String(hit.wechat || '').trim(),
       name: hit.name || '',
       trusted: !!hit.trusted,
       craft_max: Number(hit.craft_max != null ? hit.craft_max : 10),
-      job_role: String(hit.job_role || ''),
+      job_role: roles[0] || '',
+      roles: roles,
     });
     return hit;
   }
@@ -243,10 +260,13 @@
         if (String(u.wechat || '').trim() === cfg.wechat) hit = u;
       });
       if (hit) {
+        var roles = rolesOf(hit);
         saveConfig({
           trusted: !!hit.trusted,
           name: hit.name || cfg.name,
           craft_max: Number(hit.craft_max != null ? hit.craft_max : cfg.craft_max),
+          job_role: roles[0] || cfg.job_role,
+          roles: roles.length ? roles : (cfg.roles || []),
         });
       }
     } catch (e) { /* 离线时沿用本地缓存 */ }

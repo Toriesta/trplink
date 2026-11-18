@@ -11,7 +11,48 @@
   var toastEl = document.getElementById('toast');
   var refreshBtn = document.getElementById('btnRefresh');
 
-  var APP_VERSION = '1.0.7';
+  // 角色图标：新增岗位用 SVG，旧岗位沿用已有 PNG
+  var ROLE_KEYS = {
+    biz: 'biz', business: 'biz', '商务': 'biz',
+    writer: 'writer', '编剧': 'writer',
+    editor: 'editor', '剪辑': 'editor', '编辑': 'editor',
+    review: 'review', '审片': 'review',
+    aigc: 'aigc', 'aigc 制作': 'aigc',
+    boss: 'boss', me: 'boss', '老板': 'boss',
+    toli: 'toli', '执行代理': 'toli',
+    dev: 'dev', '编程': 'dev', '开发': 'dev', '技术': 'dev',
+    org: 'org', '组织': 'org', '管理': 'org',
+    net: 'net', '网络': 'net', '运营': 'net',
+    pr: 'pr', '宣传': 'pr', '市场': 'pr', '公关': 'pr',
+    collect: 'collect', data: 'collect', '采集': 'collect',
+    '数据采集': 'collect', '素材采集': 'collect', '数据收集': 'collect',
+    label: 'label', annotate: 'label', annotation: 'label',
+    '标注': 'label', '数据标注': 'label',
+    qc: 'qc', quality: 'qc', '质检': 'qc', '数据质检': 'qc', '标注质检': 'qc',
+    eval: 'eval', evaluation: 'eval', benchmark: 'eval',
+    '评测': 'eval', '模型评测': 'eval', '测试': 'eval',
+    safety: 'safety', moderation: 'safety',
+    '安全': 'safety', '审核': 'safety', '内容审核': 'safety', '合规': 'safety',
+    support: 'support', cs: 'support',
+    '客服': 'support', '用户支持': 'support', '社群': 'support'
+  };
+  var ROLE_NAME = {
+    biz: '商务', writer: '编剧', editor: '剪辑', review: '审片',
+    aigc: 'AIGC 制作', boss: '老板', toli: '执行代理',
+    dev: '编程', org: '组织', net: '网络', pr: '宣传',
+    collect: '数据采集', label: '数据标注', qc: '数据质检',
+    eval: '模型评测', safety: '安全审核', support: '用户支持'
+  };
+  function roleKeyOf(raw) {
+    var s = String(raw || '').trim();
+    return ROLE_KEYS[s.toLowerCase()] || ROLE_KEYS[s] || '';
+  }
+
+  function roleSrc(key) {
+    return 'roles/' + key + '_sm.svg';
+  }
+
+  var APP_VERSION = '1.0.13';
   var updateModal = document.getElementById('updateModal');
   var updateModalTitle = document.getElementById('updateModalTitle');
   var updateModalNotes = document.getElementById('updateModalNotes');
@@ -197,19 +238,10 @@
       meta.push('指定给 ' + (S.isMine(t, state.cfg) ? '你' : t.assignedTo));
     }
 
-    var ROLE_FILE = { biz: 'biz', writer: 'writer', editor: 'editor',
-                      review: 'review', aigc: 'aigc', boss: 'boss', toli: 'toli' };
-    var ROLE_TIP = { biz: '商务', writer: '编剧', editor: '剪辑',
-                     review: '审片', aigc: 'AIGC', boss: '老板', toli: '执行代理' };
-    var ROLE_ALIAS = { business: 'biz', me: 'boss', '商务': 'biz', '编剧': 'writer',
-                       '剪辑': 'editor', '编辑': 'editor', '审片': 'review',
-                       '老板': 'boss', '执行代理': 'toli' };
-    var rawRole = String(t.role || '').trim();
-    var roleKey = ROLE_FILE[rawRole.toLowerCase()] || ROLE_ALIAS[rawRole] ||
-      ROLE_ALIAS[rawRole.toLowerCase()];
+    var roleKey = roleKeyOf(t.role);
     var badge = roleKey
-      ? '<img class="tcard-role" src="roles/' + roleKey + '_sm.png" alt="' +
-        esc(ROLE_TIP[roleKey]) + '" title="' + esc(ROLE_TIP[roleKey]) + '">'
+      ? '<img class="tcard-role" src="' + roleSrc(roleKey) + '" alt="' +
+        esc(ROLE_NAME[roleKey]) + '" title="' + esc(ROLE_NAME[roleKey]) + '">'
       : '<span class="tcard-level" title="' + esc(S.codeOf(t)) + '">' +
         esc(S.codeOf(t)) + '</span>';
 
@@ -310,19 +342,25 @@
       ? '<div class="list">' + mine.map(cardHTML).join('') + '</div>'
       : emptyHTML('这里还空着', '接下的任务会按「进行中 / 待验收 / 已完成」分组显示');
 
-    var ROLE_CN = { biz: '商务', writer: '编剧', editor: '剪辑',
-                    aigc: 'AIGC 制作', review: '审片', boss: '老板', toli: '执行代理' };
-    var role = state.cfg.job_role || '';
-    var roleHTML = role
-      ? '<img class="role-badge" src="roles/' + esc(role) + '_sm.png" alt="' +
-        esc(ROLE_CN[role] || role) + '">'
-      : '';
+    var rawRoles = (Array.isArray(state.cfg.roles) && state.cfg.roles.length)
+      ? state.cfg.roles : [state.cfg.job_role];
+    var roleKeys = [];
+    rawRoles.forEach(function (x) {
+      var k = roleKeyOf(x);
+      if (k && roleKeys.indexOf(k) < 0 && roleKeys.length < 3) roleKeys.push(k);
+    });
+    var roleHTML = roleKeys.map(function (k) {
+      return '<img class="role-badge" src="' + roleSrc(k) + '" alt="' +
+        esc(ROLE_NAME[k]) + '" title="' + esc(ROLE_NAME[k]) + '">';
+    }).join('');
+    var roleText = roleKeys.map(function (k) { return ROLE_NAME[k]; }).join(' / ');
 
     view.innerHTML = '' +
       '<section class="hero">' +
-        '<div class="hero-row">' + roleHTML + '<h1>我的任务</h1>' +
+        '<div class="hero-row"><h1>我的任务</h1>' +
         (st.mine ? '<span class="count-pill">' + st.mine + ' 单</span>' : '') + '</div>' +
-        '<p>' + (role ? (ROLE_CN[role] || role) + ' ・ ' : '') + (state.cfg.wechat ? esc(state.cfg.wechat) : '还没用工号登录，去设置里登录') +
+        (roleHTML ? '<div class="identity-row">' + roleHTML + '</div>' : '') +
+        '<p>' + (roleText ? roleText + ' ・ ' : '') + (state.cfg.wechat ? esc(state.cfg.wechat) : '还没用工号登录，去设置里登录') +
         ' · 手上 ' + st.doing + ' 单要做</p>' +
       '</section>' +
       '<div class="stats">' +
@@ -473,11 +511,10 @@
 
     var mine = S.isMine(t, state.cfg);
     var left = S.daysLeft(t.deadline);
-    var ROLE_SM = { biz: 'biz', writer: 'writer', editor: 'editor',
-                    review: 'review', aigc: 'aigc', boss: 'boss' };
-    var rKey = ROLE_SM[String(t.role ? t.role : '')];
+    var rKey = roleKeyOf(t.role);
     var roleImg = rKey
-      ? '<img class="sheet-role" src="roles/' + rKey + '_sm.png" alt="">'
+      ? '<img class="sheet-role" src="' + roleSrc(rKey) + '" alt="' +
+        esc(ROLE_NAME[rKey]) + '">'
       : '';
     var actions = '';
 
