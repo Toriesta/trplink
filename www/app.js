@@ -202,11 +202,12 @@
 
     var statusText = S.STATUS[t.status] ? S.STATUS[t.status] : t.status;
     var right = t.status === 'open'
-      ? '<button class="tcard-btn" type="button" data-act="claim" data-id="' + esc(t.id) + '">抢单</button>'
+      ? '<button class="tcard-btn" type="button" data-act="claim" data-id="' + esc(t.id) + '">抢单<i class="tcard-btn-ic">›</i></button>'
       : '<span class="tcard-state ' + esc(t.status) + '">' + esc(statusText) + '</span>';
 
     return '' +
       '<article class="card tcard p' + (Number(t.priority) ? Number(t.priority) : 2) + '" data-act="detail" data-id="' + esc(t.id) + '" style="--i:' + i + '" role="button" tabindex="0">' +
+        '<span class="tcard-sheen"></span>' +
         badge +
         '<div class="tcard-body">' +
           '<div class="tcard-title">' + esc(t.title) + '</div>' +
