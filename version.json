@@ -1,6 +1,6 @@
 {
-  "version": "1.0.10",
+  "version": "1.0.11",
   "released": "2026-11-19",
-  "notes": "新增摄影 / 演员 / 美术 / 录音 / 化妆 / 场务六个基层岗位图标，AI 拆解任务可直接分配",
-  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.10/app-debug.apk"
+  "notes": "撤销剧组现场岗位；新增数据采集 / 数据标注 / 数据质检 / 模型评测 / 安全审核 / 用户支持六个 AI 基层岗位图标",
+  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.11/app-debug.apk"
 }
