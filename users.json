@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-18T20:21:19+08:00",
+  "updated": "2026-11-19",
   "users": [
     {
       "wechat": "SimoHoia0523",
@@ -21,7 +21,10 @@
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 剪辑",
       "code": "1003",
-      "job_role": "editor"
+      "job_role": "editor",
+      "roles": [
+        "editor"
+      ]
     },
     {
       "wechat": "lyc1039791451",
@@ -32,7 +35,10 @@
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 剪辑",
       "code": "1004",
-      "job_role": "editor"
+      "job_role": "editor",
+      "roles": [
+        "editor"
+      ]
     },
     {
       "wechat": "SJY20208620221219",
@@ -43,7 +49,10 @@
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 软件开发",
       "code": "1005",
-      "job_role": "aigc"
+      "job_role": "aigc",
+      "roles": [
+        "aigc"
+      ]
     },
     {
       "wechat": "wxid_pe6h9g3um8ye22",
@@ -54,7 +63,10 @@
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 编剧，文学顾问",
       "code": "1006",
-      "job_role": "writer"
+      "job_role": "writer",
+      "roles": [
+        "writer"
+      ]
     },
     {
       "wechat": "X0o0o0JH",
@@ -65,7 +77,10 @@
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 软件工程师",
       "code": "1007",
-      "job_role": "aigc"
+      "job_role": "aigc",
+      "roles": [
+        "aigc"
+      ]
     },
     {
       "wechat": "yf072415",
@@ -76,7 +91,10 @@
       "registeredAt": "2026-11-17",
       "note": "从 TRP Link 1.0 团队库同步 · 商务",
       "code": "1008",
-      "job_role": "biz"
+      "job_role": "biz",
+      "roles": [
+        "biz"
+      ]
     }
   ]
 }
