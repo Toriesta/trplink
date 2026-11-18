@@ -11,7 +11,7 @@
   var toastEl = document.getElementById('toast');
   var refreshBtn = document.getElementById('btnRefresh');
 
-  var APP_VERSION = '1.0.3';
+  var APP_VERSION = '1.0.4';
   var updateBar = document.getElementById('updateBar');
   var updateTitle = document.getElementById('updateTitle');
   var updateNotes = document.getElementById('updateNotes');
@@ -110,9 +110,9 @@
     var api = 'https://api.github.com/repos/' + owner + '/' + repo +
       '/contents/version.json?ref=' + encodeURIComponent(branch);
     var urls = [
+      api,
       'https://cdn.jsdelivr.net/gh/' + owner + '/' + repo + '@' + branch + '/version.json',
-      'https://raw.githubusercontent.com/' + owner + '/' + repo + '/' + branch + '/version.json',
-      api
+      'https://raw.githubusercontent.com/' + owner + '/' + repo + '/' + branch + '/version.json'
     ];
     var errs = [];
     for (var i = 0; i < urls.length; i++) {
@@ -122,14 +122,21 @@
         if (url.indexOf('api.github.com') >= 0 && cfg.token) {
           headers.Authorization = 'Bearer ' + cfg.token;
         }
-        var res = await fetch(url, { cache: 'no-store', headers: headers });
+        var ctrl = new AbortController();
+        var timer = setTimeout(function () { ctrl.abort(); }, 6000);
+        var res;
+        try {
+          res = await fetch(url, { cache: 'no-store', headers: headers, signal: ctrl.signal });
+        } finally {
+          clearTimeout(timer);
+        }
         if (!res.ok) throw new Error('HTTP ' + res.status);
         var info = await res.json();
         if (info && info.content) info = JSON.parse(b64decode(info.content));
         if (info && info.version) return info;
         throw new Error('版本文件格式不对');
       } catch (e) {
-        errs.push((e && e.message) || '失败');
+        errs.push((e && e.name === 'AbortError') ? '超时' : ((e && e.message) || '失败'));
       }
     }
     throw new Error('三个源都不可用（' + errs.join(' / ') + '）');

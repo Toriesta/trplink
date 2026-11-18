@@ -1,6 +1,6 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "released": "2026-11-18",
-  "notes": "修复：版本检查改为 CDN / raw / API 三源自动切换，国内网络也能收到更新提示",
-  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.3/app-debug.apk"
+  "notes": "修复版本检查：优先走 GitHub API，CDN 与 raw 兜底，单源 6 秒超时，国内网络更稳",
+  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.4/app-debug.apk"
 }
