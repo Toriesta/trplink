@@ -148,35 +148,23 @@
       meta.push('指定给 ' + (S.isMine(t, state.cfg.wechat || state.cfg.name) ? '你' : t.assignedTo));
     }
 
-    var action = '';
-    if (t.status === 'open') {
-      action = '<button class="btn" type="button" data-act="claim" data-id="' + esc(t.id) + '">抢单</button>';
-    } else if (t.status === 'claimed' && mine) {
-      action = '<span class="badge claimed">我的</span>';
-    } else if (t.status === 'claimed') {
-      action = '<span class="meta">' + esc(t.claimedBy || '已接') + '</span>';
-    }
+    var statusText = S.STATUS[t.status]; t.status;
+    var right = t.status === 'open'
+      ? '<button class="tcard-btn" type="button" data-act="claim" data-id="' + esc(t.id) + '">抢单</button>'
+      : '<span class="tcard-state ' + esc(t.status) + '">' + esc(statusText) + '</span>';
 
     return '' +
-      '<article class="card p' + (Number(t.priority) || 2) + '" data-act="detail" data-id="' + esc(t.id) + '" ' +
-      'style="--i:' + i + '" role="button" tabindex="0">' +
-        '<div class="card-top">' +
-          '<div class="card-title">' + esc(t.title) + '</div>' +
-          '<div class="card-price"><small>¥</small>' + esc(S.money(t.reward)) + '</div>' +
+      '<article class="card tcard p' + (Number(t.priority) ? Number(t.priority) : 2) + '" data-act="detail" data-id="' + esc(t.id) + '" style="--i:' + i + '" role="button" tabindex="0">' +
+        '<span class="tcard-badge lv-' + esc(t.secret) + '" title="' + esc((S.LEVELS[t.secret] ? S.LEVELS[t.secret] : '') + ' · 制作水平 ' + t.craft + '/10') + '">' + esc(S.codeOf(t)) + '</span>' +
+        '<div class="tcard-body">' +
+          '<div class="tcard-title">' + esc(t.title) + '</div>' +
+          '<div class="tcard-meta' + (urgent ? ' urgent' : '') + '">' + esc(meta.join(' · ')) + '</div>' +
         '</div>' +
-        (t.brief ? '<p class="card-brief">' + esc(t.brief) + '</p>' : '') +
-        '<div class="card-foot">' +
-          '<span class="lv lv-' + esc(t.secret) + '" title="' +
-            esc((S.LEVELS[t.secret] || '') + ' · 制作水平 ' + t.craft + '/10（'
-              + S.craftLabel(t.craft) + '）') + '">' + esc(S.codeOf(t)) + '</span>' +
-          '<span class="meta' + (urgent ? ' urgent' : '') + '">' + esc(meta[0]) + '</span>' +
-          meta.slice(1).map(function (m) {
-            return '<i class="dot-sep"></i><span class="meta">' + esc(m) + '</span>';
-          }).join('') +
-          '<span class="spacer"></span>' +
-          '<span class="badge ' + esc(t.status) + '">' + esc(S.STATUS[t.status] || t.status) + '</span>' +
-          action +
+        '<div class="tcard-right">' +
+          '<span class="tcard-price">¥' + esc(S.money(t.reward)) + '</span>' +
+          right +
         '</div>' +
+        (urgent ? '<i class="tcard-alert"></i>' : '') +
       '</article>';
   }
 
