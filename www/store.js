@@ -161,18 +161,60 @@
     return { users: SEED_USERS.slice(), updated: isoNow() };
   }
 
+  // 手机网络访问 api.github.com 常被重置：再退到 jsDelivr 与 raw，
+  // 任意一个能通就能用新工号登录，三个都失败才用本地缓存。
+  async function readFallback(cfg, path) {
+    var owner = encodeURIComponent(cfg.owner || 'Toriesta');
+    var repo = encodeURIComponent(cfg.repo || 'trplink');
+    var branch = encodeURIComponent(cfg.branch || 'main');
+    var p = String(path || cfg.usersPath || 'users.json')
+      .split('/').map(encodeURIComponent).join('/');
+    var urls = [
+      'https://cdn.jsdelivr.net/gh/' + owner + '/' + repo + '@' + branch + '/' + p,
+      'https://fastly.jsdelivr.net/gh/' + owner + '/' + repo + '@' + branch + '/' + p,
+      'https://raw.githubusercontent.com/' + owner + '/' + repo + '/' + branch + '/' + p
+    ];
+    var last = '网络不可用';
+    for (var i = 0; i < urls.length; i++) {
+      try {
+        var ctrl = new AbortController();
+        var timer = setTimeout(ctrl.abort.bind(ctrl), 6000);
+        var res;
+        try {
+          res = await fetch(urls[i] + '?t=' + Date.now(),
+            { cache: 'no-store', signal: ctrl.signal });
+        } finally {
+          clearTimeout(timer);
+        }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var data = await res.json();
+        if (!data || !Array.isArray(data.users)) throw new Error('名单格式不对');
+        return data;
+      } catch (e) {
+        last = (e && e.name === 'AbortError') ? '超时' : ((e && e.message) || '失败');
+      }
+    }
+    throw new Error(last);
+  }
+
   async function readUsers() {
     var cfg = getConfig();
+    var data;
     try {
       var got = await githubRead(cfg, cfg.usersPath || 'users.json');
-      var data = got.data || { users: [] };
-      if (!Array.isArray(data.users)) data.users = [];
-      writeJSON(USERS_KEY, data);   // 缓存一份，离线也能登录
-      return { data: data, sha: got.sha, source: 'github' };
+      data = got.data || { users: [] };
     } catch (e) {
-      var cached = localUsers();
-      return { data: cached, sha: '', source: 'cache', error: (e && e.message) || '' };
+      try {
+        data = await readFallback(cfg, cfg.usersPath || 'users.json');
+      } catch (e2) {
+        var cached = localUsers();
+        return { data: cached, sha: '', source: 'cache',
+                 error: (e2 && e2.message) || '' };
+      }
     }
+    if (!Array.isArray(data.users)) data.users = [];
+    writeJSON(USERS_KEY, data);   // 缓存一份，离线也能登录
+    return { data: data, sha: '', source: 'github' };
   }
 
   // 一个成员最多 3 个身份；兼容旧数据只有 job_role 的情况
@@ -200,7 +242,14 @@
       if (String(u.code || '').trim() === key) hit = u;
     });
     // 只有管理员录入人才库的人才有工号；不存在「点名字登录」这种冒名入口
-    if (!hit) throw new Error('工号不在人才库里，请联系管理员确认');
+    if (!hit) {
+      if (got.source === 'cache' && !got.data.users.length) {
+        throw new Error('手机连不上 GitHub，也没有缓存的人才库；换个网络再试');
+      }
+      throw new Error(got.source === 'cache'
+        ? '人才库里还没这个工号（当前是离线缓存，联网后下拉刷新再试）'
+        : '工号不在人才库里，请联系管理员确认');
+    }
     if (hit.role === 'admin') throw new Error('管理员账号不在手机端登录');
     var roles = rolesOf(hit);
     saveConfig({

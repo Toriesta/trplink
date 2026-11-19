@@ -1,6 +1,6 @@
 {
-  "version": "1.0.13",
+  "version": "1.0.14",
   "released": "2026-11-19",
-  "notes": "17 个岗位徽章全部重做：双层刻度环、身份刻印与专属图形，成员身份和任务性质共用",
-  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.13/app-debug.apk"
+  "notes": "工号登录更抗弱网：人才库读取在 GitHub API 之外增加 jsDelivr / raw 兜底，连不上时也会提示真实原因",
+  "apk": "https://github.com/Toriesta/trplink/releases/download/v1.0.14/app-debug.apk"
 }
