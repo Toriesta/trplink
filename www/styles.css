@@ -987,6 +987,14 @@ svg { display: block; }
 }
 .update-card .btn { margin-top: 2px; }
 .update-card .btn.ink { background: var(--coral); color: #FFFFFF; }
+.update-alt {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.update-alt[hidden] { display: none; }
 .update-card .btn.ghost {
   color: var(--ivory);
   border-color: rgba(255, 255, 255, 0.18);

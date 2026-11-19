@@ -52,13 +52,14 @@
     return 'roles/' + key + '_sm.svg';
   }
 
-  var APP_VERSION = '1.0.14';
+  var APP_VERSION = '1.0.15';
   var updateModal = document.getElementById('updateModal');
   var updateModalTitle = document.getElementById('updateModalTitle');
   var updateModalNotes = document.getElementById('updateModalNotes');
   var updateModalCurrent = document.getElementById('updateModalCurrent');
   var updateModalVersion = document.getElementById('updateModalVersion');
   var updateModalGo = document.getElementById('updateModalGo');
+  var updateModalAlt = document.getElementById('updateModalAlt');
   var updateModalLater = document.getElementById('updateModalLater');
 
   var state = {
@@ -136,6 +137,12 @@
     if (updateModalGo) {
       updateModalGo.href = info.apk ||
         'https://github.com/Toriesta/trplink/releases/latest';
+    }
+    // 主地址走国内镜像，备用给 GitHub 原地址
+    if (updateModalAlt) {
+      var alt = info.apk_github || '';
+      updateModalAlt.hidden = !alt;
+      if (alt) updateModalAlt.href = alt;
     }
     updateModal.hidden = false;
   }

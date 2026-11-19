@@ -26,6 +26,22 @@ TOKEN_FILE = ROOT / ".token.json"
 REPO_DEFAULT = "Toriesta/trplink"
 
 
+def _proxy_mod():
+    """复用桌面端的按需代理：发布前开 Clash，发完关掉。
+
+    导入失败就返回 None，发布照常直连——不能因为代理没配好就发不出去。
+    """
+    try:
+        desktop = Path(__file__).resolve().parents[2]
+        if str(desktop) not in sys.path:
+            sys.path.insert(0, str(desktop))
+        from app import proxy
+
+        return proxy
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def load_token() -> str:
     """令牌来源：环境变量 GH_TOKEN → mobile-app/.token.json。
 
@@ -93,6 +109,16 @@ def next_id(tasks: list[dict]) -> str:
 
 def push_github(repo: str, token: str, data: dict, branch: str,
                 path: str, message: str) -> str:
+    """上传一份 JSON；需要代理时自动开关 Clash Verge。"""
+    proxy = _proxy_mod()
+    if proxy is None:
+        return _push_once(repo, token, data, branch, path, message)
+    with proxy.ensured():
+        return _push_once(repo, token, data, branch, path, message)
+
+
+def _push_once(repo: str, token: str, data: dict, branch: str,
+               path: str, message: str) -> str:
     headers = {"Accept": "application/vnd.github+json", "Authorization": f"Bearer {token}"}
     url = f"{API}/repos/{repo}/contents/{path}"
     sha = ""
