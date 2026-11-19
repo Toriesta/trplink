@@ -21,9 +21,11 @@
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 剪辑",
       "code": "1003",
-      "job_role": "editor",
+      "job_role": "org",
       "roles": [
-        "editor"
+        "org",
+        "editor",
+        "toli"
       ]
     },
     {
@@ -34,10 +36,12 @@
       "craft_max": 2,
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 剪辑",
-      "code": "1004",
+      "code": "1234",
       "job_role": "editor",
       "roles": [
-        "editor"
+        "editor",
+        "review",
+        "net"
       ]
     },
     {
@@ -48,10 +52,11 @@
       "craft_max": 2,
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 软件开发",
-      "code": "1005",
-      "job_role": "aigc",
+      "code": "1004",
+      "job_role": "pr",
       "roles": [
-        "aigc"
+        "pr",
+        "dev"
       ]
     },
     {
@@ -62,10 +67,12 @@
       "craft_max": 6,
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 编剧，文学顾问",
-      "code": "1006",
-      "job_role": "writer",
+      "code": "1005",
+      "job_role": "dev",
       "roles": [
-        "writer"
+        "dev",
+        "org",
+        "pr"
       ]
     },
     {
@@ -76,10 +83,12 @@
       "craft_max": 6,
       "registeredAt": "2026-11-17",
       "note": "从桌面团队库同步 · 软件工程师",
-      "code": "1007",
-      "job_role": "aigc",
+      "code": "1006",
+      "job_role": "dev",
       "roles": [
-        "aigc"
+        "dev",
+        "net",
+        "eval"
       ]
     },
     {
@@ -90,10 +99,11 @@
       "craft_max": 6,
       "registeredAt": "2026-11-17",
       "note": "从 TRP Link 1.0 团队库同步 · 商务",
-      "code": "1008",
-      "job_role": "biz",
+      "code": "1007",
+      "job_role": "review",
       "roles": [
-        "biz"
+        "review",
+        "dev"
       ]
     }
   ]
