@@ -1,7 +1,7 @@
 {
-  "version": "1.0.14",
+  "version": "1.0.15",
   "released": "2026-11-19",
-  "notes": "工号登录更抗弱网：人才库读取在 GitHub API 之外增加 jsDelivr / raw 兜底，连不上时也会提示真实原因",
-  "apk": "https://cdn.jsdelivr.net/gh/Toriesta/trplink@main/apk/trplink-1.0.14.apk",
-  "apk_github": "https://github.com/Toriesta/trplink/releases/download/v1.0.14/app-debug.apk"
+  "notes": "更新弹窗增加国内镜像优先下载，另留 GitHub 原地址备用",
+  "apk": "https://cdn.jsdelivr.net/gh/Toriesta/trplink@main/apk/trplink-1.0.15.apk",
+  "apk_github": "https://github.com/Toriesta/trplink/releases/download/v1.0.15/app-debug.apk"
 }
