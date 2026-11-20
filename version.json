@@ -1,7 +1,7 @@
 {
-  "version": "1.0.16",
+  "version": "1.0.17",
   "released": "2026-11-20",
-  "notes": "任务、评分等只读内容支持国内镜像兜底；令牌失效时自动改为匿名读取公开仓库",
-  "apk": "https://cdn.jsdelivr.net/gh/Toriesta/trplink@main/apk/trplink-1.0.16.apk",
-  "apk_github": "https://raw.githubusercontent.com/Toriesta/trplink/main/apk/trplink-1.0.16.apk"
+  "notes": "内置长期令牌，抢单与提交不再因令牌过期失败；只读内容继续支持国内镜像兜底",
+  "apk": "https://cdn.jsdelivr.net/gh/Toriesta/trplink@main/apk/trplink-1.0.17.apk",
+  "apk_github": "https://raw.githubusercontent.com/Toriesta/trplink/main/apk/trplink-1.0.17.apk"
 }
