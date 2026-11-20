@@ -161,8 +161,8 @@
     return { users: SEED_USERS.slice(), updated: isoNow() };
   }
 
-  // 手机网络访问 api.github.com 常被重置：再退到 jsDelivr 与 raw，
-  // 任意一个能通就能用新工号登录，三个都失败才用本地缓存。
+  // 手机网络访问 api.github.com 常被重置：再退到 jsDelivr 与 raw。
+  // 只读接口都可以走这里，写入仍然必须走 API（需要 sha 与权限）。
   async function readFallback(cfg, path) {
     var owner = encodeURIComponent(cfg.owner || 'Toriesta');
     var repo = encodeURIComponent(cfg.repo || 'trplink');
@@ -188,7 +188,7 @@
         }
         if (!res.ok) throw new Error('HTTP ' + res.status);
         var data = await res.json();
-        if (!data || !Array.isArray(data.users)) throw new Error('名单格式不对');
+        if (!data || typeof data !== 'object') throw new Error('内容格式不对');
         return data;
       } catch (e) {
         last = (e && e.name === 'AbortError') ? '超时' : ((e && e.message) || '失败');
@@ -352,6 +352,11 @@
 
   async function githubRead(cfg, path) {
     var res = await fetch(apiUrl(cfg, path), { headers: headers(cfg), cache: 'no-store' });
+    // 令牌过期/被吊销时，公开仓库其实可以匿名读：先去掉 Authorization 再试一次
+    if ((res.status === 401 || res.status === 403) && cfg.token) {
+      res = await fetch(apiUrl(cfg, path),
+        { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    }
     if (res.status === 404) {
       throw new Error('仓库里还没有 ' + cfg.path + '，先在网页上创建这个文件');
     }
@@ -363,6 +368,21 @@
     var text = b64decode(json.content || '');
     var data = JSON.parse(text);
     return { data: data, sha: json.sha };
+  }
+
+  // 只读统一入口：API（含匿名重试）→ jsDelivr / raw 镜像。
+  // 镜像响应没有 sha，仅供展示；写入仍然走 githubRead + githubWrite。
+  async function readAny(cfg, path) {
+    path = path || cfg.path || 'tasks.json';
+    try {
+      return await githubRead(cfg, path);
+    } catch (e) {
+      try {
+        return { data: await readFallback(cfg, path), sha: '' };
+      } catch (e2) {
+        throw e;
+      }
+    }
   }
 
   async function githubWrite(cfg, data, sha, message, path) {
@@ -421,7 +441,7 @@
       // 先给缓存，网络在后台刷新；这一层由 app.js 决定是否 await
     }
     try {
-      var got = await githubRead(cfg);
+      var got = await readAny(cfg);
       writeJSON(CACHE_KEY, { data: got.data, sha: got.sha, at: Date.now() });
       return { data: sanitize(normalize(got.data), cfg), source: 'github',
                sha: got.sha, offline: false, error: '' };
@@ -462,7 +482,7 @@
   async function readRatings() {
     var cfg = getConfig();
     try {
-      var got = await githubRead(cfg, cfg.ratingsPath || 'ratings.json');
+      var got = await readAny(cfg, cfg.ratingsPath || 'ratings.json');
       var data = got.data || { ratings: [] };
       if (!Array.isArray(data.ratings)) data.ratings = [];
       writeJSON(RATINGS_KEY, data);
@@ -599,7 +619,7 @@
   async function syncFromGitHub() {
     var cfg = getConfig();
     if (!gitReady(cfg)) throw new Error('仓库配置异常，请重装 App');
-    var got = await githubRead(cfg);
+    var got = await readAny(cfg);
     writeJSON(CACHE_KEY, { data: got.data, sha: got.sha, at: Date.now() });
     return { data: normalize(got.data), sha: got.sha };
   }
