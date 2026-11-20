@@ -1,6 +1,6 @@
 {
   "name": "trp-tasks",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "private": true,
   "description": "TRP 任务台 · 安卓接单客户端（天枢架构内部工具）",
   "scripts": {

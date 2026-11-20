@@ -52,7 +52,7 @@
     return 'roles/' + key + '_sm.svg';
   }
 
-  var APP_VERSION = '1.0.17';
+  var APP_VERSION = '1.0.18';
   var updateModal = document.getElementById('updateModal');
   var updateModalTitle = document.getElementById('updateModalTitle');
   var updateModalNotes = document.getElementById('updateModalNotes');
